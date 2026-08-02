@@ -10,16 +10,15 @@ export default function Home() {
   const [direccion, setDireccion] = useState('');
   const [datosPredio, setDatosPredio] = useState<DatosPredioBogota | null>(null);
 
-  // Parámetros de entrada configurables
   const [inputs, setInputs] = useState<KUBICInputs>({
     areaLote: 850,
     indiceOcupacion: 0.7,
     indiceConstruccion: 4.0,
     eficienciaPlanta: 80,
     numSotanos: 2,
-    costoObraSobreM2: 3200000, // $3.2M COP
-    precioVentaM2: 8500000,   // $8.5M COP
-    precioParqueaderoUnitario: 25000000, // $25M COP
+    costoObraSobreM2: 3200000,
+    precioVentaM2: 8500000,
+    precioParqueaderoUnitario: 25000000,
     numParqueaderos: 20,
     pctCostosIndirectos: 15,
     margenObjetivoPct: 20,
@@ -27,7 +26,7 @@ export default function Home() {
 
   const [resultados, setResultados] = useState<KUBICResults | null>(null);
 
-  // Manejar búsqueda en SINUPOT / IDECA
+  // Consulta y actualización dinámica directa
   const handleBuscarDireccion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!direccion.trim()) return;
@@ -36,8 +35,8 @@ export default function Home() {
     const predio = await consultarNormaPorDireccion(direccion);
     setDatosPredio(predio);
 
-    // Actualizar inputs con los datos del predio
-    const nuevosInputs = {
+    // Sobrescribir inputs obligatoriamente con los datos devueltos para el predio
+    const nuevosInputs: KUBICInputs = {
       ...inputs,
       areaLote: predio.areaLote,
       indiceOcupacion: predio.indiceOcupacion,
@@ -45,15 +44,19 @@ export default function Home() {
     };
     
     setInputs(nuevosInputs);
+    
+    // Recalcular el modelo financiero de inmediato
+    const res = calcularPrefactibilidad(nuevosInputs);
+    setResultados(res);
+
     setCargando(false);
     setPaso(2);
   };
 
-  // Recalcular cuando cambian los sliders
-  const handleCalcular = () => {
-    const res = calcularPrefactibilidad(inputs);
+  const handleRecalcular = (nuevosInputs: KUBICInputs) => {
+    setInputs(nuevosInputs);
+    const res = calcularPrefactibilidad(nuevosInputs);
     setResultados(res);
-    setPaso(3);
   };
 
   const formatCOP = (valor: number) => {
@@ -66,7 +69,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans">
-      {/* Navbar con Identidad KUBIC */}
       <header className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-md">
         <div className="flex items-center space-x-3">
           <span className="text-2xl font-black tracking-wider text-orange-500">KUBIC</span>
@@ -80,7 +82,7 @@ export default function Home() {
       </header>
 
       <main className="max-w-6xl mx-auto p-4 sm:p-6">
-        {/* PASO 1: Landing & Buscador */}
+        {/* PASO 1: Buscador */}
         {paso === 1 && (
           <div className="bg-white rounded-2xl shadow-xl p-8 my-8 text-center max-w-2xl mx-auto border border-slate-200">
             <div className="inline-block bg-orange-100 text-orange-700 font-bold text-xs uppercase px-3 py-1 rounded-full mb-4">
@@ -90,70 +92,52 @@ export default function Home() {
               Evalúa la viabilidad de tu lote o proyecto
             </h1>
             <p className="text-slate-600 text-sm mb-8">
-              Ingresa la dirección en Bogotá. Obtenemos la norma urbana automáticamente y calculamos el residual del suelo y la rentabilidad.
+              Ingresa la dirección en Bogotá para obtener la norma urbana y calcular el residual del suelo.
             </p>
 
             <form onSubmit={handleBuscarDireccion} className="space-y-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Ej: Calle 72 # 10-34"
-                  value={direccion}
-                  onChange={(e) => setDireccion(e.target.value)}
-                  className="w-full px-5 py-4 text-slate-900 bg-slate-50 border-2 border-slate-300 rounded-xl focus:outline-none focus:border-orange-500 text-lg shadow-inner"
-                  required
-                />
-              </div>
+              <input
+                type="text"
+                placeholder="Ej: Calle 134 # 19-45 (Lisboa Norte)"
+                value={direccion}
+                onChange={(e) => setDireccion(e.target.value)}
+                className="w-full px-5 py-4 text-slate-900 bg-slate-50 border-2 border-slate-300 rounded-xl focus:outline-none focus:border-orange-500 text-lg shadow-inner"
+                required
+              />
               <button
                 type="submit"
                 disabled={cargando}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition duration-200 text-lg flex items-center justify-center"
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition text-lg flex items-center justify-center"
               >
                 {cargando ? 'Consultando SINUPOT / IDECA...' : 'Iniciar Análisis Gratis'}
               </button>
             </form>
-
-            <div className="grid grid-cols-3 gap-4 mt-10 pt-8 border-t border-slate-100 text-xs text-slate-500">
-              <div>
-                <span className="block font-bold text-slate-800 text-sm mb-1">1. Ubica</span>
-                Dirección o CHIP
-              </div>
-              <div>
-                <span className="block font-bold text-slate-800 text-sm mb-1">2. Ajusta</span>
-                Parámetros de Obra
-              </div>
-              <div>
-                <span className="block font-bold text-slate-800 text-sm mb-1">3. Decide</span>
-                Margen y Residual
-              </div>
-            </div>
           </div>
         )}
 
-        {/* PASO 2: Ajuste de Parámetros */}
+        {/* PASO 2: Parámetros */}
         {paso === 2 && datosPredio && (
           <div className="grid md:grid-cols-3 gap-6 my-4">
-            {/* Panel Izquierdo: Norma Automática */}
             <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-lg">
-              <span className="text-xs font-bold text-orange-400 uppercase tracking-wider">Norma Autocompletada</span>
+              <span className="text-xs font-bold text-orange-400 uppercase tracking-wider">Norma Detectada</span>
               <h2 className="text-xl font-bold mt-1 mb-4 text-white">{datosPredio.direccion}</h2>
               
               <div className="space-y-3 text-sm border-t border-slate-800 pt-4">
                 <div>
                   <span className="text-slate-400 block text-xs">Localidad / Barrio</span>
-                  <span className="font-semibold">{datosPredio.localidad} - {datosPredio.barrio}</span>
+                  <span className="font-semibold text-orange-300">{datosPredio.localidad} - {datosPredio.barrio}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-xs">CHIP Catastral</span>
+                  <span className="font-semibold">{datosPredio.chip}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-xs">Tratamiento Urbanístico</span>
-                  <span className="font-semibold text-orange-300">{datosPredio.tratamiento}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-xs">Uso Principal</span>
-                  <span className="font-semibold">{datosPredio.usoPrincipal}</span>
+                  <span className="font-semibold">{datosPredio.tratamiento}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-xs">Área Lote Catastral</span>
-                  <span className="font-semibold">{inputs.areaLote} m²</span>
+                  <span className="font-semibold text-lg text-emerald-400">{inputs.areaLote} m²</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
                   <div>
@@ -168,26 +152,22 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Panel Derecho: Sliders e Inputs */}
             <div className="md:col-span-2 bg-white p-6 rounded-2xl shadow-lg border border-slate-200 space-y-5">
               <h2 className="text-lg font-bold text-slate-900 pb-2 border-b">
-                Ajuste de Variables del Proyecto
+                Ajuste de Variables de Proyecto
               </h2>
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Eficiencia de Planta: {inputs.eficienciaPlanta}%
+                    Área del Lote (m²)
                   </label>
                   <input
-                    type="range"
-                    min="70"
-                    max="90"
-                    value={inputs.eficienciaPlanta}
-                    onChange={(e) => setInputs({ ...inputs, eficienciaPlanta: Number(e.target.value) })}
-                    className="w-full accent-orange-600"
+                    type="number"
+                    value={inputs.areaLote}
+                    onChange={(e) => handleRecalcular({ ...inputs, areaLote: Number(e.target.value) })}
+                    className="w-full p-2 border rounded-lg text-sm bg-slate-50 font-bold"
                   />
-                  <span className="text-[10px] text-slate-400">Default 80% útil vendible</span>
                 </div>
 
                 <div>
@@ -199,7 +179,7 @@ export default function Home() {
                     min="0"
                     max="5"
                     value={inputs.numSotanos}
-                    onChange={(e) => setInputs({ ...inputs, numSotanos: Number(e.target.value) })}
+                    onChange={(e) => handleRecalcular({ ...inputs, numSotanos: Number(e.target.value) })}
                     className="w-full accent-orange-600"
                   />
                 </div>
@@ -211,7 +191,7 @@ export default function Home() {
                   <input
                     type="number"
                     value={inputs.costoObraSobreM2}
-                    onChange={(e) => setInputs({ ...inputs, costoObraSobreM2: Number(e.target.value) })}
+                    onChange={(e) => handleRecalcular({ ...inputs, costoObraSobreM2: Number(e.target.value) })}
                     className="w-full p-2 border rounded-lg text-sm bg-slate-50"
                   />
                 </div>
@@ -223,7 +203,7 @@ export default function Home() {
                   <input
                     type="number"
                     value={inputs.precioVentaM2}
-                    onChange={(e) => setInputs({ ...inputs, precioVentaM2: Number(e.target.value) })}
+                    onChange={(e) => handleRecalcular({ ...inputs, precioVentaM2: Number(e.target.value) })}
                     className="w-full p-2 border rounded-lg text-sm bg-slate-50"
                   />
                 </div>
@@ -237,20 +217,19 @@ export default function Home() {
                   ← Cambiar Dirección
                 </button>
                 <button
-                  onClick={handleCalcular}
+                  onClick={() => setPaso(3)}
                   className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-xl shadow-md transition"
                 >
-                  Calcular Viabilidad KUBIC →
+                  Ver Resultados de Viabilidad →
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* PASO 3: Dashboard de Resultados */}
+        {/* PASO 3: Dashboard */}
         {paso === 3 && resultados && (
           <div className="space-y-6 my-4">
-            {/* Header del Diagnóstico */}
             <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-6">
               <div>
                 <span className="text-xs text-orange-400 font-bold uppercase tracking-wider">Resultado de Prefactibilidad</span>
@@ -264,7 +243,7 @@ export default function Home() {
                   resultados.estadoViabilidad === 'AMARILLO' ? 'bg-amber-500' : 'bg-rose-500'
                 }`} />
                 <div>
-                  <span className="block text-xs text-slate-400 uppercase font-bold">Estado del Proyecto</span>
+                  <span className="block text-xs text-slate-400 uppercase font-bold">Estado</span>
                   <span className={`text-xl font-black ${
                     resultados.estadoViabilidad === 'VERDE' ? 'text-emerald-400' :
                     resultados.estadoViabilidad === 'AMARILLO' ? 'text-amber-400' : 'text-rose-400'
@@ -273,27 +252,24 @@ export default function Home() {
                      resultados.estadoViabilidad === 'AMARILLO' ? 'AJUSTADO' : 'ALTO RIESGO'}
                   </span>
                 </div>
-                <div className="border-l border-slate-700 pl-4 ml-2">
-                  <span className="block text-xs text-slate-400 font-bold">Margen Estimado</span>
-                  <span className="text-xl font-black text-white">{resultados.margenObtenidoPct.toFixed(1)}%</span>
-                </div>
               </div>
             </div>
 
-            {/* Métrica Estrella: Residual del Suelo */}
             <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white p-6 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-center">
               <div>
                 <span className="text-xs uppercase tracking-widest font-bold opacity-80">Valor Máximo Sugerido del Lote</span>
                 <h2 className="text-3xl font-black mt-1">RESIDUAL DEL SUELO</h2>
-                <p className="text-xs opacity-90">Precio máximo a pagar o aportar para garantizar un {inputs.margenObjetivoPct}% de margen.</p>
               </div>
               <div className="text-right mt-4 sm:mt-0 bg-black/20 px-6 py-3 rounded-xl backdrop-blur-sm">
                 <span className="text-3xl font-black">{formatCOP(resultados.residualSuelo)}</span>
               </div>
             </div>
 
-            {/* Cifras Clave */}
             <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white p-4 rounded-xl shadow border border-slate-200">
+                <span className="text-xs text-slate-500 font-bold block">Área Lote</span>
+                <span className="text-xl font-black text-slate-800">{inputs.areaLote} m²</span>
+              </div>
               <div className="bg-white p-4 rounded-xl shadow border border-slate-200">
                 <span className="text-xs text-slate-500 font-bold block">Área Vendible Útil</span>
                 <span className="text-xl font-black text-slate-800">{resultados.areaVendible.toLocaleString()} m²</span>
@@ -303,29 +279,17 @@ export default function Home() {
                 <span className="text-xl font-black text-emerald-600">{formatCOP(resultados.ventasTotales)}</span>
               </div>
               <div className="bg-white p-4 rounded-xl shadow border border-slate-200">
-                <span className="text-xs text-slate-500 font-bold block">Costo Directo Obra</span>
-                <span className="text-xl font-black text-slate-800">{formatCOP(resultados.costoDirectoTotal)}</span>
-              </div>
-              <div className="bg-white p-4 rounded-xl shadow border border-slate-200">
                 <span className="text-xs text-slate-500 font-bold block">Utilidad Estimada</span>
                 <span className="text-xl font-black text-orange-600">{formatCOP(resultados.utilidadEstimada)}</span>
               </div>
             </div>
 
-            {/* Botones de Acción */}
             <div className="flex justify-between items-center pt-4">
               <button
                 onClick={() => setPaso(2)}
                 className="px-4 py-2 text-slate-600 font-bold text-sm bg-white rounded-lg border shadow-sm"
               >
                 ← Ajustar Parámetros
-              </button>
-
-              <button
-                onClick={() => alert("¡Generando el informe ejecutivo en PDF de 2 páginas de KUBIC!")}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-3 rounded-xl shadow-lg transition flex items-center gap-2"
-              >
-                <span>Descargar Informe PDF</span>
               </button>
             </div>
           </div>
