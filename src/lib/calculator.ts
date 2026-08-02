@@ -1,5 +1,4 @@
 export interface KUBICInputs {
-  // 1. Datos de Norma y Proyecto
   nombreProyecto: string;
   ciudad: string;
   estrato: number;
@@ -7,31 +6,26 @@ export interface KUBICInputs {
   areaLote: number;
   indiceOcupacion: number;
   indiceConstruccion: number;
-  eficienciaPlantaPct: number; // Ej: 82%
+  eficienciaPlantaPct: number;
 
-  // 2. Subestructura (Sótanos)
   numSotanos: number;
-  areaSotanoPorNivel: number; // Por defecto suele ser similar a Ocupación
+  areaSotanoPorNivel: number;
 
-  // 3. Costos Directos
-  costoDirectoSobreM2: number; // Costo por m2 construido sobre rasante
-  costoDirectoBajoM2: number;  // Costo por m2 de sótano / excavación
+  costoDirectoSobreM2: number;
+  costoDirectoBajoM2: number;
 
-  // 4. Costos Indirectos Desglosados (% sobre costo directo o valor fijo)
-  pctEstudiosDiseños: number;   // Ej: 4%
-  pctLicenciasImpuestos: number; // Ej: 3%
-  pctGerenciaSupervision: number;// Ej: 4%
-  pctVentasComercial: number;   // Ej: 5%
-  pctImprevistosFinancieros: number; // Ej: 4%
+  pctEstudiosDiseños: number;
+  pctLicenciasImpuestos: number;
+  pctGerenciaSupervision: number;
+  pctVentasComercial: number;
+  pctImprevistosFinancieros: number;
 
-  // 5. Estrategia de Tierra e Ingresos
   precioVentaM2: number;
-  valorLotePactado?: number; // Opcional: Si ya hay precio de lote
-  margenObjetivoPct: number; // Ej: 20%
+  valorLotePactado?: number;
+  margenObjetivoPct: number;
 }
 
 export interface KUBICResults {
-  // Áreas
   areaOcupacionP1: number;
   areaTotalSobreRasante: number;
   areaVendibleUtil: number;
@@ -39,18 +33,15 @@ export interface KUBICResults {
   areaTotalSotanos: number;
   areaTotalConstruida: number;
 
-  // Costos
   costoDirectoSobre: number;
   costoDirectoBajo: number;
   costoDirectoTotal: number;
   costosIndirectosTotal: number;
   costoTotalProyectoSinLote: number;
 
-  // Ventas e Ingresos
   ventasTotales: number;
 
-  // Resultados Financieros
-  residualSueloSugerido: number; // Valor máximo pagadero por el lote
+  residualSueloSugerido: number; // Máximo 20% de las ventas totales
   valorM2LoteSugerido: number;
   utilidadEstimada: number;
   margenSobreVentasPct: number;
@@ -58,7 +49,7 @@ export interface KUBICResults {
 }
 
 export function calcularPrefactibilidadCompleta(i: KUBICInputs): KUBICResults {
-  // 1. Cálculos Físicos
+  // 1. Áreas
   const areaOcupacionP1 = i.areaLote * i.indiceOcupacion;
   const areaTotalSobreRasante = i.areaLote * i.indiceConstruccion;
   const areaVendibleUtil = areaTotalSobreRasante * (i.eficienciaPlantaPct / 100);
@@ -87,15 +78,18 @@ export function calcularPrefactibilidadCompleta(i: KUBICInputs): KUBICResults {
   // 4. Ventas
   const ventasTotales = areaVendibleUtil * i.precioVentaM2;
 
-  // 5. Análisis del Lote y Utilidad
-  // Ventas = CostosDirectos + CostosIndirectos + Lote + Utilidad
-  // UtilidadDeseada = Ventas * MargenObjetivo
-  const utilidadObjetivo = ventasTotales * (i.margenObjetivoPct / 100);
-  const residualSueloSugerido = Math.max(0, ventasTotales - costoTotalProyectoSinLote - utilidadObjetivo);
-  const valorM2LoteSugerido = residualSueloSugerido / i.areaLote;
+  // 5. Lote Topado al 20% de Ventas Máximo
+  const topeLote20Pct = ventasTotales * 0.20;
+  const residualMatematico = Math.max(0, ventasTotales - costoTotalProyectoSinLote - (ventasTotales * (i.margenObjetivoPct / 100)));
+  
+  // El lote nunca supera el 20% de las ventas
+  const residualSueloSugerido = Math.min(topeLote20Pct, residualMatematico);
+  const valorM2LoteSugerido = i.areaLote > 0 ? residualSueloSugerido / i.areaLote : 0;
 
-  // Si el usuario ingresó un valor de lote fijo, calculamos la utilidad real
-  const costoLoteEfectivo = i.valorLotePactado && i.valorLotePactado > 0 ? i.valorLotePactado : residualSueloSugerido;
+  // Si hay valor de lote pactado por el propietario, usas ese; de lo contrario usas el valor sugerido topado
+  const costoLoteEfectivo = (i.valorLotePactado && i.valorLotePactado > 0) ? i.valorLotePactado : residualSueloSugerido;
+  
+  // La Utilidad toma todo el remanente (Si el lote cuesta menos o se topa al 20%, la utilidad sube)
   const utilidadEstimada = ventasTotales - (costoTotalProyectoSinLote + costoLoteEfectivo);
   const margenSobreVentasPct = ventasTotales > 0 ? (utilidadEstimada / ventasTotales) * 100 : 0;
 
