@@ -1,89 +1,128 @@
 export interface KUBICInputs {
+  // 1. Datos de Norma y Proyecto
+  nombreProyecto: string;
+  ciudad: string;
+  estrato: number;
+  usoSuelo: string;
   areaLote: number;
   indiceOcupacion: number;
   indiceConstruccion: number;
-  eficienciaPlanta: number;
+  eficienciaPlantaPct: number; // Ej: 82%
+
+  // 2. Subestructura (Sótanos)
   numSotanos: number;
-  costoObraSobreM2: number;
+  areaSotanoPorNivel: number; // Por defecto suele ser similar a Ocupación
+
+  // 3. Costos Directos
+  costoDirectoSobreM2: number; // Costo por m2 construido sobre rasante
+  costoDirectoBajoM2: number;  // Costo por m2 de sótano / excavación
+
+  // 4. Costos Indirectos Desglosados (% sobre costo directo o valor fijo)
+  pctEstudiosDiseños: number;   // Ej: 4%
+  pctLicenciasImpuestos: number; // Ej: 3%
+  pctGerenciaSupervision: number;// Ej: 4%
+  pctVentasComercial: number;   // Ej: 5%
+  pctImprevistosFinancieros: number; // Ej: 4%
+
+  // 5. Estrategia de Tierra e Ingresos
   precioVentaM2: number;
-  precioParqueaderoUnitario: number;
-  numParqueaderos: number;
-  pctCostosIndirectos: number;
-  valorSueloPropuesto?: number;
-  margenObjetivoPct: number;
+  valorLotePactado?: number; // Opcional: Si ya hay precio de lote
+  margenObjetivoPct: number; // Ej: 20%
 }
 
 export interface KUBICResults {
-  areaOcupada: number;
-  areaConstruibleSobre: number;
-  areaVendible: number;
-  areaSotanos: number;
-  areaTotalObra: number;
-  ventasArea: number;
-  ventasParqueaderos: number;
-  ventasTotales: number;
+  // Áreas
+  areaOcupacionP1: number;
+  areaTotalSobreRasante: number;
+  areaVendibleUtil: number;
+  areaNoVendible: number;
+  areaTotalSotanos: number;
+  areaTotalConstruida: number;
+
+  // Costos
   costoDirectoSobre: number;
   costoDirectoBajo: number;
   costoDirectoTotal: number;
-  costosIndirectos: number;
-  gastosFinancieros: number;
-  costoTotalObraSinTierra: number;
-  residualSuelo: number;
+  costosIndirectosTotal: number;
+  costoTotalProyectoSinLote: number;
+
+  // Ventas e Ingresos
+  ventasTotales: number;
+
+  // Resultados Financieros
+  residualSueloSugerido: number; // Valor máximo pagadero por el lote
+  valorM2LoteSugerido: number;
   utilidadEstimada: number;
-  margenObtenidoPct: number;
+  margenSobreVentasPct: number;
   estadoViabilidad: 'VERDE' | 'AMARILLO' | 'ROJO';
 }
 
-export function calcularPrefactibilidad(inputs: KUBICInputs): KUBICResults {
-  const areaOcupada = inputs.areaLote * inputs.indiceOcupacion;
-  const areaConstruibleSobre = inputs.areaLote * inputs.indiceConstruccion;
-  const areaVendible = areaConstruibleSobre * (inputs.eficienciaPlanta / 100);
-  const areaSotanos = areaOcupada * inputs.numSotanos;
-  const areaTotalObra = areaConstruibleSobre + areaSotanos;
+export function calcularPrefactibilidadCompleta(i: KUBICInputs): KUBICResults {
+  // 1. Cálculos Físicos
+  const areaOcupacionP1 = i.areaLote * i.indiceOcupacion;
+  const areaTotalSobreRasante = i.areaLote * i.indiceConstruccion;
+  const areaVendibleUtil = areaTotalSobreRasante * (i.eficienciaPlantaPct / 100);
+  const areaNoVendible = areaTotalSobreRasante - areaVendibleUtil;
+  
+  const areaSotanoNivel = i.areaSotanoPorNivel > 0 ? i.areaSotanoPorNivel : areaOcupacionP1;
+  const areaTotalSotanos = i.numSotanos * areaSotanoNivel;
+  const areaTotalConstruida = areaTotalSobreRasante + areaTotalSotanos;
 
-  const ventasArea = areaVendible * inputs.precioVentaM2;
-  const ventasParqueaderos = inputs.numParqueaderos * inputs.precioParqueaderoUnitario;
-  const ventasTotales = ventasArea + ventasParqueaderos;
-
-  const costoDirectoSobre = areaConstruibleSobre * inputs.costoObraSobreM2;
-  const costoDirectoBajo = areaSotanos * (inputs.costoObraSobreM2 * 1.2);
+  // 2. Costos Directos
+  const costoDirectoSobre = areaTotalSobreRasante * i.costoDirectoSobreM2;
+  const costoDirectoBajo = areaTotalSotanos * i.costoDirectoBajoM2;
   const costoDirectoTotal = costoDirectoSobre + costoDirectoBajo;
 
-  const costosIndirectos = costoDirectoTotal * (inputs.pctCostosIndirectos / 100);
-  const gastosFinancieros = (costoDirectoTotal + costosIndirectos) * 0.04;
-  const costoTotalObraSinTierra = costoDirectoTotal + costosIndirectos + gastosFinancieros;
+  // 3. Costos Indirectos
+  const pctIndirectosTotal = 
+    i.pctEstudiosDiseños + 
+    i.pctLicenciasImpuestos + 
+    i.pctGerenciaSupervision + 
+    i.pctVentasComercial + 
+    i.pctImprevistosFinancieros;
+    
+  const costosIndirectosTotal = costoDirectoTotal * (pctIndirectosTotal / 100);
+  const costoTotalProyectoSinLote = costoDirectoTotal + costosIndirectosTotal;
 
-  const residualSuelo = ventasTotales * (1 - inputs.margenObjetivoPct / 100) - costoTotalObraSinTierra;
+  // 4. Ventas
+  const ventasTotales = areaVendibleUtil * i.precioVentaM2;
 
-  const valorTierraUsado = inputs.valorSueloPropuesto ?? Math.max(0, residualSuelo);
-  const utilidadEstimada = ventasTotales - (costoTotalObraSinTierra + valorTierraUsado);
-  const margenObtenidoPct = (utilidadEstimada / ventasTotales) * 100;
+  // 5. Análisis del Lote y Utilidad
+  // Ventas = CostosDirectos + CostosIndirectos + Lote + Utilidad
+  // UtilidadDeseada = Ventas * MargenObjetivo
+  const utilidadObjetivo = ventasTotales * (i.margenObjetivoPct / 100);
+  const residualSueloSugerido = Math.max(0, ventasTotales - costoTotalProyectoSinLote - utilidadObjetivo);
+  const valorM2LoteSugerido = residualSueloSugerido / i.areaLote;
+
+  // Si el usuario ingresó un valor de lote fijo, calculamos la utilidad real
+  const costoLoteEfectivo = i.valorLotePactado && i.valorLotePactado > 0 ? i.valorLotePactado : residualSueloSugerido;
+  const utilidadEstimada = ventasTotales - (costoTotalProyectoSinLote + costoLoteEfectivo);
+  const margenSobreVentasPct = ventasTotales > 0 ? (utilidadEstimada / ventasTotales) * 100 : 0;
 
   let estadoViabilidad: 'VERDE' | 'AMARILLO' | 'ROJO' = 'ROJO';
-  if (margenObtenidoPct >= 15) {
+  if (margenSobreVentasPct >= i.margenObjetivoPct) {
     estadoViabilidad = 'VERDE';
-  } else if (margenObtenidoPct >= 10) {
+  } else if (margenSobreVentasPct >= 12) {
     estadoViabilidad = 'AMARILLO';
   }
 
   return {
-    areaOcupada,
-    areaConstruibleSobre,
-    areaVendible,
-    areaSotanos,
-    areaTotalObra,
-    ventasArea,
-    ventasParqueaderos,
-    ventasTotales,
+    areaOcupacionP1,
+    areaTotalSobreRasante,
+    areaVendibleUtil,
+    areaNoVendible,
+    areaTotalSotanos,
+    areaTotalConstruida,
     costoDirectoSobre,
     costoDirectoBajo,
     costoDirectoTotal,
-    costosIndirectos,
-    gastosFinancieros,
-    costoTotalObraSinTierra,
-    residualSuelo,
+    costosIndirectosTotal,
+    costoTotalProyectoSinLote,
+    ventasTotales,
+    residualSueloSugerido,
+    valorM2LoteSugerido,
     utilidadEstimada,
-    margenObtenidoPct,
+    margenSobreVentasPct,
     estadoViabilidad,
   };
 }
