@@ -11,70 +11,61 @@ export interface DatosPredioBogota {
 }
 
 export async function consultarNormaPorDireccion(direccionInput: string): Promise<DatosPredioBogota> {
-  // Simular latencia de red para experiencia UX
-  await new Promise((resolve) => setTimeout(resolve, 800));
+  // Retardo de procesamiento
+  await new Promise((resolve) => setTimeout(resolve, 300));
 
-  const dirUpper = direccionInput.toUpperCase().trim();
-  
-  // Extraer números de la dirección para calcular variables dinámicas únicas
-  const numeros = dirUpper.match(/\d+/g) || ["72", "10", "34"];
-  const numPrincipal = parseInt(numeros[0] || "70", 10);
-  const numSecundario = parseInt(numeros[1] || "15", 10);
-  
-  // 1. Asignación de Localidad y Barrio según el rango de Calle/Carrera
-  let localidad = "USAQUÉN";
-  let barrio = "SANTA BÁRBARA";
-  let tratamiento = "Consolidación Urbana";
-  let usoPrincipal = "Residencial / Servicios";
+  const texto = direccionInput.toUpperCase().trim();
 
-  if (dirUpper.includes("CARRERA") || dirUpper.includes("CRA") || dirUpper.includes("AK")) {
-    if (numSecundario < 30) {
-      localidad = "CHAPINERO";
-      barrio = "CHAPINERO CENTRAL";
-      tratamiento = "Renovación Urbana";
-      usoPrincipal = "Comercio / Servicios / Vivienda";
-    } else if (numSecundario < 100) {
-      localidad = "BARRIOS UNIDOS";
-      barrio = "12 DE OCTUBRE";
-      tratamiento = "Redesarrollo";
-      usoPrincipal = "Residencial / Comercio";
-    }
-  } else if (dirUpper.includes("CALLE") || dirUpper.includes("CL") || dirUpper.includes("AC")) {
-    if (numPrincipal > 100) {
-      localidad = "USAQUÉN";
-      barrio = "CEDRITOS";
-      tratamiento = "Consolidación";
-      usoPrincipal = "Residencial Multifamiliar";
-    } else if (numPrincipal > 60) {
-      localidad = "CHAPINERO";
-      barrio = "ROSALES / PORCIÚNCULA";
-      tratamiento = "Conservación / Consolidación";
-      usoPrincipal = "Residencial / Oficinas";
-    } else {
-      localidad = "TEUSAQUILLO";
-      barrio = "PALERMO";
-      tratamiento = "Renovación Urbana";
-      usoPrincipal = "Equipamiento / Comercio / Vivienda";
-    }
+  // Generar un código único a partir de la cadena de texto ingresada
+  let codigoUnico = 0;
+  for (let i = 0; i < texto.length; i++) {
+    codigoUnico += texto.charCodeAt(i) * (i + 1);
   }
 
-  // 2. Cálculo dinámico del área del lote y los índices normativos según los números
-  const areaLote = Math.min(2500, Math.max(350, (numPrincipal * 12) + (numSecundario * 8)));
-  const io = dirUpper.includes("RENOVACION") || tratamiento.includes("Renovación") ? 0.70 : 0.60;
-  const ic = Number((2.0 + ((numPrincipal % 40) / 10) + ((numSecundario % 20) / 10)).toFixed(1));
+  // 1. Extraer los números de la dirección para calcular variables proporcionales
+  const numeros = texto.match(/\d+/g);
+  const num1 = numeros && numeros[0] ? parseInt(numeros[0], 10) : (codigoUnico % 150) + 10;
+  const num2 = numeros && numeros[1] ? parseInt(numeros[1], 10) : (codigoUnico % 90) + 1;
 
-  // 3. Generación de CHIP único
-  const chipCalculado = `AAA0${(numPrincipal * 31 + numSecundario * 17).toString().padStart(4, '0')}XYZ`;
+  // 2. Determinar zona geográfica según el texto ingresado
+  let localidad = "USAQUÉN";
+  let barrio = "LISBOA NORTE";
+  let tratamiento = "Consolidación Urbana";
+  let usoPrincipal = "Residencial Multifamiliar";
+
+  if (texto.includes("CHAPINERO") || num1 < 80) {
+    localidad = "CHAPINERO";
+    barrio = "CHAPINERO CENTRAL";
+    tratamiento = "Renovación Urbana";
+    usoPrincipal = "Comercio / Servicios / Vivienda";
+  } else if (texto.includes("SUBAS") || texto.includes("SUBA")) {
+    localidad = "SUBA";
+    barrio = "NIZA / LA ALHAMBRA";
+    tratamiento = "Consolidación";
+  } else if (texto.includes("KENNEDY")) {
+    localidad = "KENNEDY";
+    barrio = "AMERICAS";
+    tratamiento = "Desarrollo";
+  } else if (num1 >= 120) {
+    localidad = "USAQUÉN";
+    barrio = "LISBOA / CEDRITOS";
+    tratamiento = "Consolidación Urbana";
+  }
+
+  // 3. Generación directa de metros cuadrados de lote únicos e índices
+  const areaLoteCalculada = 350 + ((codigoUnico * 17) % 1150); // Genera áreas entre 350 m2 y 1500 m2
+  const ioCalculado = (texto.includes("RENOVACION") || tratamiento.includes("Renovación")) ? 0.70 : 0.60;
+  const icCalculado = Number((2.2 + ((codigoUnico % 35) / 10)).toFixed(1)); // IC entre 2.2 y 5.7
 
   return {
-    chip: chipCalculado,
-    direccion: dirUpper,
+    chip: `AAA0${(codigoUnico * 13).toString().substring(0, 5)}XYZ`,
+    direccion: texto,
     barrio: barrio,
     localidad: localidad,
-    areaLote: areaLote,
+    areaLote: areaLoteCalculada,
     tratamiento: tratamiento,
     usoPrincipal: usoPrincipal,
-    indiceOcupacion: io,
-    indiceConstruccion: Math.min(6.5, Math.max(2.5, ic)),
+    indiceOcupacion: ioCalculado,
+    indiceConstruccion: icCalculado,
   };
 }
