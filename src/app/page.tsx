@@ -6,11 +6,11 @@ import { calcularPrefactibilidadCompleta, KUBICInputs, KUBICResults } from '../l
 export default function Home() {
   const [paso, setPaso] = useState<1 | 2>(1);
 
-  // Formulario con datos iniciales
+  // Formulario con datos iniciales calibrados
   const [inputs, setInputs] = useState<KUBICInputs>({
     nombreProyecto: '',
     ciudad: 'Bogotá D.C.',
-    estrato: 4,
+    estrato: 6,
     usoSuelo: 'Residencial Multifamiliar',
     areaLote: 800,
     indiceOcupacion: 0.70,
@@ -20,8 +20,8 @@ export default function Home() {
     numSotanos: 2,
     areaSotanoPorNivel: 560,
 
-    costoDirectoSobreM2: 3200000,
-    costoDirectoBajoM2: 3800000,
+    costoDirectoSobreM2: 5200000,
+    costoDirectoBajoM2: 4200000,
 
     pctEstudiosDiseños: 4.0,
     pctLicenciasImpuestos: 3.5,
@@ -29,61 +29,55 @@ export default function Home() {
     pctVentasComercial: 5.0,
     pctImprevistosFinancieros: 4.5,
 
-    precioVentaM2: 7500000,
+    precioVentaM2: 15000000,
     valorLotePactado: 0,
     margenObjetivoPct: 20,
   });
 
   const [resultados, setResultados] = useState<KUBICResults | null>(null);
 
-  // Lógica Reflexiva: Ajusta precios de venta y costos según Uso y Estrato seleccionados
+  // Lógica de Precios Sugeridos por Estrato (Estructurada sobre base Estrato 6 ~ $8.5 MM costo)
   const actualizarSugerenciasMercado = (estratoNuevo: number, usoNuevo: string) => {
-    let ventaSugerida = 7500000;
-    let costoSobreSugerido = 3200000;
+    let ventaSugerida = 15000000;
+    let costoSobreSugerido = 5200000;
     let eficienciaSugerida = 82;
 
-    // Sugerencias por Estrato
     switch (estratoNuevo) {
       case 1:
       case 2:
-        ventaSugerida = 3000000;
-        costoSobreSugerido = 2000000;
+        ventaSugerida = 2800000;
+        costoSobreSugerido = 1950000;
         break;
       case 3:
         ventaSugerida = 5200000;
-        costoSobreSugerido = 2600000;
+        costoSobreSugerido = 2800000;
         break;
       case 4:
-        ventaSugerida = 7500000;
-        costoSobreSugerido = 3200000;
+        ventaSugerida = 7800000;
+        costoSobreSugerido = 3600000;
         break;
       case 5:
-        ventaSugerida = 9800000;
-        costoSobreSugerido = 3900000;
+        ventaSugerida = 10500000;
+        costoSobreSugerido = 4400000;
         break;
       case 6:
-        ventaSugerida = 14500000;
-        costoSobreSugerido = 4800000;
+        ventaSugerida = 15000000;
+        costoSobreSugerido = 5200000;
         break;
     }
 
-    // Ajustes por Uso del Suelo
     if (usoNuevo.includes('VIS')) {
       ventaSugerida = 2800000;
-      costoSobreSugerido = 1950000;
+      costoSobreSugerido = 1900000;
       eficienciaSugerida = 85;
     } else if (usoNuevo.includes('Comercial')) {
-      ventaSugerida = Math.round(ventaSugerida * 1.35);
+      ventaSugerida = Math.round(ventaSugerida * 1.30);
       costoSobreSugerido = Math.round(costoSobreSugerido * 1.15);
       eficienciaSugerida = 88;
     } else if (usoNuevo.includes('Institucional') || usoNuevo.includes('Salud')) {
-      ventaSugerida = Math.round(ventaSugerida * 1.1);
+      ventaSugerida = Math.round(ventaSugerida * 1.10);
       costoSobreSugerido = Math.round(costoSobreSugerido * 1.25);
-      eficienciaSugerida = 75; // Circulaciones más amplias
-    } else if (usoNuevo.includes('Oficinas')) {
-      ventaSugerida = Math.round(ventaSugerida * 1.2);
-      costoSobreSugerido = Math.round(costoSobreSugerido * 1.18);
-      eficienciaSugerida = 80;
+      eficienciaSugerida = 75;
     }
 
     setInputs((prev) => ({
@@ -118,7 +112,6 @@ export default function Home() {
     inputs.pctVentasComercial + 
     inputs.pctImprevistosFinancieros;
 
-  // Lógica del Lote para el Resumen Completo
   const esLotePactado = inputs.valorLotePactado && inputs.valorLotePactado > 0;
   const loteMonto = esLotePactado ? inputs.valorLotePactado! : (resultados?.residualSueloSugerido || 0);
   const loteM2Tierra = inputs.areaLote > 0 ? loteMonto / inputs.areaLote : 0;
@@ -129,7 +122,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans">
-      {/* Header */}
       <header className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-md">
         <div className="flex items-center space-x-3">
           <span className="text-2xl font-black tracking-wider text-orange-500">KUBIC</span>
@@ -138,15 +130,13 @@ export default function Home() {
           </span>
         </div>
         <div className="text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-slate-300">
-          Simulador Reflexivo Multivariable
+          Simulador Financiero Tope Lote 20%
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto p-4 sm:p-6">
-        {/* PASO 1: Formulario */}
         {paso === 1 && (
           <div className="space-y-6 my-4">
-            {/* Banner Orientación Norma */}
             <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-lg border border-slate-700">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
@@ -177,14 +167,12 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Formulario Estructurado */}
             <form onSubmit={handleCalcular} className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200 space-y-8">
               <div>
                 <h1 className="text-2xl font-extrabold text-slate-900">Estructuración de Prefactibilidad</h1>
                 <p className="text-slate-500 text-xs mt-1">Ingresa todos los parámetros físicos, urbanísticos, directos e indirectos del proyecto.</p>
               </div>
 
-              {/* 1. Identificación y Clasificación */}
               <div className="space-y-4">
                 <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">1. Clasificación del Proyecto (Sugerencias Automáticas)</h3>
                 <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -192,7 +180,7 @@ export default function Home() {
                     <label className="block text-xs font-bold text-slate-700 mb-1">Nombre / Referencia</label>
                     <input
                       type="text"
-                      placeholder="Ej: Edificio Lisboa 134"
+                      placeholder="Ej: Edificio Rosales 72"
                       value={inputs.nombreProyecto}
                       onChange={(e) => setInputs({ ...inputs, nombreProyecto: e.target.value })}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
@@ -242,7 +230,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 2. Física del Lote y Subestructura */}
               <div className="space-y-4">
                 <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">2. Física del Lote y Subestructura (Sótanos)</h3>
                 <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -333,7 +320,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 3. Costos Directos */}
               <div className="space-y-4">
                 <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">3. Costos Directos de Obra ($/m²)</h3>
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -360,7 +346,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 4. Desglose Costos Indirectos */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center border-b pb-1">
                   <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider">4. Desglose de Costos Indirectos (% sobre Costo Directo)</h3>
@@ -420,9 +405,8 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 5. Precios Venta, Valor Lote y Margen */}
               <div className="space-y-4">
-                <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">5. Valor de Venta, Lote y Margen Objetivo</h3>
+                <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">5. Valor de Venta, Lote Pactado y Margen Mínimo</h3>
                 <div className="grid sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">Precio Venta ($/m² útil vendible)</label>
@@ -438,14 +422,14 @@ export default function Home() {
                     <label className="block text-xs font-bold text-slate-700 mb-1">Valor Pedido/Pactado Lote ($ - Opción)</label>
                     <input
                       type="number"
-                      placeholder="Dejar en 0 para calcular Residual Sugerido"
+                      placeholder="Dejar en 0 para calcular Máximo 20%"
                       value={inputs.valorLotePactado || ''}
                       onChange={(e) => setInputs({ ...inputs, valorLotePactado: Number(e.target.value) })}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Margen Objetivo Desarrollador (%)</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Margen Mínimo Desarrollador (%)</label>
                     <input
                       type="number"
                       value={inputs.margenObjetivoPct}
@@ -467,10 +451,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* PASO 2: Dashboard Completo */}
         {paso === 2 && resultados && (
           <div className="space-y-6 my-4">
-            {/* Encabezado Principal */}
             <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-6">
               <div>
                 <span className="text-xs text-orange-400 font-bold uppercase tracking-wider">{inputs.ciudad} | Estrato {inputs.estrato} | {inputs.usoSuelo}</span>
@@ -498,14 +480,13 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Banner Sugerido del Lote */}
             <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white p-6 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-center">
               <div>
                 <span className="text-xs uppercase tracking-widest font-bold opacity-90">
-                  {esLotePactado ? 'VALOR PACTADO CON PROPIETARIO' : 'RESIDUAL DEL SUELO (SUGERIDO MÁXIMO)'}
+                  {esLotePactado ? 'VALOR PACTADO CON PROPIETARIO' : 'SUELO SUGERIDO (TOPE MÁXIMO 20% VENTAS)'}
                 </span>
                 <h2 className="text-3xl font-black mt-1">
-                  {esLotePactado ? 'VALOR DE COMPRA DE TIERRA' : 'MÁXIMO VALOR SUGERIDO DEL LOTE'}
+                  {esLotePactado ? 'VALOR PACTADO DE TIERRA' : 'LOTE MÁXIMO RECOMENDADO'}
                 </h2>
               </div>
               <div className="text-right mt-4 sm:mt-0 bg-black/20 px-6 py-3 rounded-xl backdrop-blur-sm">
@@ -516,16 +497,15 @@ export default function Home() {
               </div>
             </div>
 
-            {/* BLOQUE EXCLUSIVO DE DETALLE DEL LOTE */}
             <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl shadow-sm">
               <h3 className="text-xs font-black text-amber-900 uppercase tracking-wider border-b border-amber-200 pb-2 mb-4">
-                Análisis y Detalle Específico del Suelo / Lote
+                Análisis y Detalle Específico del Suelo / Lote (Tope 20%)
               </h3>
               <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm">
                   <span className="text-xs text-amber-800 font-medium block">Criterio de Evaluación</span>
                   <span className="text-sm font-black text-amber-950 mt-1 block">
-                    {esLotePactado ? 'Monto Pactado / Pedido' : 'Residual Financiero Sugerido'}
+                    {esLotePactado ? 'Monto Pactado por Propietario' : 'Tope Sugerido (Máx. 20%)'}
                   </span>
                 </div>
                 <div className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm">
@@ -533,17 +513,16 @@ export default function Home() {
                   <span className="text-lg font-black text-amber-950 mt-1 block">{formatCOP(loteM2Tierra)}</span>
                 </div>
                 <div className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm">
-                  <span className="text-xs text-amber-800 font-medium block">Incidencia en Ventas (%)</span>
+                  <span className="text-xs text-amber-800 font-medium block">Incidencia sobre Ventas</span>
                   <span className="text-lg font-black text-amber-950 mt-1 block">{pesoLoteVentas.toFixed(1)}%</span>
                 </div>
                 <div className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm">
-                  <span className="text-xs text-amber-800 font-medium block">Peso en Costo Total (%)</span>
+                  <span className="text-xs text-amber-800 font-medium block">Peso en Costo Total</span>
                   <span className="text-lg font-black text-amber-950 mt-1 block">{pesoLoteCostoTotal.toFixed(1)}%</span>
                 </div>
               </div>
             </div>
 
-            {/* Balance de Áreas */}
             <div className="bg-white p-6 rounded-2xl shadow border border-slate-200">
               <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b pb-2 mb-4">Balance Físico de Edificabilidad y Áreas</h3>
               <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -566,9 +545,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Estratificación Financiera */}
             <div className="grid md:grid-cols-2 gap-6">
-              {/* Desglose Completo de Costos e Inversión */}
               <div className="bg-white p-6 rounded-2xl shadow border border-slate-200 space-y-3">
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b pb-2">Estructura Total de Inversión</h3>
                 
@@ -595,10 +572,10 @@ export default function Home() {
                 <div className="flex justify-between text-sm py-2 border-b bg-amber-100 font-bold px-3 rounded border border-amber-300">
                   <div className="flex flex-col">
                     <span className="text-amber-950">
-                      Adquisición de Lote / Tierra {esLotePactado ? '(Pactado)' : '(Residual Sugerido)'}:
+                      Adquisición de Lote / Tierra {esLotePactado ? '(Pactado)' : '(Tope 20% Ventas)'}:
                     </span>
                     <span className="text-[10px] text-amber-800 font-normal">
-                      Pesa {pesoLoteCostoTotal.toFixed(1)}% de la Inversión Total
+                      Pesa {pesoLoteCostoTotal.toFixed(1)}% del Costo Total
                     </span>
                   </div>
                   <span className="text-amber-950 text-base">{formatCOP(loteMonto)}</span>
@@ -610,7 +587,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Ventas y Utilidad Obtenida */}
               <div className="bg-white p-6 rounded-2xl shadow border border-slate-200 space-y-3">
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b pb-2">Ingresos y Estado de Resultados</h3>
                 
@@ -641,7 +617,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Botón Volver */}
             <div className="flex justify-between items-center pt-2">
               <button
                 onClick={() => setPaso(1)}
