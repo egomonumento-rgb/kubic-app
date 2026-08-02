@@ -1,119 +1,51 @@
 'use client';
 
 import React, { useState } from 'react';
-import { calcularPrefactibilidad, KUBICInputs, KUBICResults } from '../lib/calculator';
+import { calcularPrefactibilidadCompleta, KUBICInputs, KUBICResults } from '../lib/calculator';
 
 export default function Home() {
-  const [paso, setPaso] = useState<1 | 2 | 3>(1);
-  const [cargando, setCargando] = useState(false);
-  const [direccion, setDireccion] = useState('');
+  const [paso, setPaso] = useState<1 | 2>(1);
 
-  // Datos del predio que se calcularán en tiempo real
-  const [predioActual, setPredioActual] = useState({
-    direccion: '',
-    chip: '',
-    barrio: '',
-    localidad: '',
-    tratamiento: '',
-  });
-
+  // Formulario con todas las variables técnicas y financieras
   const [inputs, setInputs] = useState<KUBICInputs>({
-    areaLote: 500,
-    indiceOcupacion: 0.7,
+    nombreProyecto: '',
+    ciudad: 'Bogotá D.C.',
+    estrato: 4,
+    usoSuelo: 'Residencial Multifamiliar',
+    areaLote: 800,
+    indiceOcupacion: 0.70,
     indiceConstruccion: 4.0,
-    eficienciaPlanta: 80,
+    eficienciaPlantaPct: 82,
+
     numSotanos: 2,
-    costoObraSobreM2: 3200000,
+    areaSotanoPorNivel: 560, // 800 * 0.7
+
+    costoDirectoSobreM2: 3200000,
+    costoDirectoBajoM2: 3800000,
+
+    pctEstudiosDiseños: 4.0,
+    pctLicenciasImpuestos: 3.5,
+    pctGerenciaSupervision: 4.0,
+    pctVentasComercial: 5.0,
+    pctImprevistosFinancieros: 4.5,
+
     precioVentaM2: 8500000,
-    precioParqueaderoUnitario: 25000000,
-    numParqueaderos: 20,
-    pctCostosIndirectos: 15,
+    valorLotePactado: 0, // 0 para calcular Residual
     margenObjetivoPct: 20,
   });
 
   const [resultados, setResultados] = useState<KUBICResults | null>(null);
 
-  // Procesamiento instantáneo en pantalla basado en el texto ingresado
-  const handleBuscarDireccion = (e: React.FormEvent) => {
+  const handleCalcular = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!direccion.trim()) return;
-
-    setCargando(true);
-
-    setTimeout(() => {
-      const texto = direccion.toUpperCase().trim();
-
-      // Generar un código hash numérico único a partir del texto de la dirección
-      let hash = 0;
-      for (let i = 0; i < texto.length; i++) {
-        hash = (hash << 5) - hash + texto.charCodeAt(i);
-        hash |= 0;
-      }
-      const val = Math.abs(hash);
-
-      // Extraer números de la nomenclatura
-      const numeros = texto.match(/\d+/g) || ['100', '15'];
-      const num1 = parseInt(numeros[0] || '100', 10);
-      const num2 = parseInt(numeros[1] || '15', 10);
-
-      // Asignar zona y barrio
-      let loc = 'USAQUÉN';
-      let bar = 'CEDRITOS / LISBOA';
-      let trat = 'Consolidación Urbana';
-
-      if (texto.includes('CHAPINERO') || num1 < 70) {
-        loc = 'CHAPINERO';
-        bar = 'CHAPINERO CENTRAL';
-        trat = 'Renovación Urbana';
-      } else if (texto.includes('SUBA') || (num1 >= 90 && texto.includes('CRA'))) {
-        loc = 'SUBA';
-        bar = 'LA ALHAMBRA / NIZA';
-        trat = 'Consolidación Urbana';
-      } else if (texto.includes('KENNEDY')) {
-        loc = 'KENNEDY';
-        bar = 'AMÉRICAS';
-        trat = 'Desarrollo';
-      } else if (num1 >= 130) {
-        loc = 'USAQUÉN';
-        bar = 'SANTA BÁRBARA NORTE';
-        trat = 'Consolidación';
-      }
-
-      // Generar Área e Índices únicos para esta dirección
-      const areaCalculada = 350 + (val % 1100); // Rango de 350m² a 1450m²
-      const icCalculado = Number((2.4 + ((val % 35) / 10)).toFixed(1));
-      const ioCalculado = trat.includes('Renovación') ? 0.70 : 0.60;
-      const chipGenerado = `AAA0${(val % 8999 + 1000)}XYZ${num1 % 90}`;
-
-      const nuevosInputs: KUBICInputs = {
-        ...inputs,
-        areaLote: areaCalculada,
-        indiceOcupacion: ioCalculado,
-        indiceConstruccion: icCalculado,
-      };
-
-      setPredioActual({
-        direccion: texto,
-        chip: chipGenerado,
-        barrio: bar,
-        localidad: loc,
-        tratamiento: trat,
-      });
-
-      setInputs(nuevosInputs);
-
-      // Ejecutar cálculo financiero
-      const res = calcularPrefactibilidad(nuevosInputs);
-      setResultados(res);
-
-      setCargando(false);
-      setPaso(2);
-    }, 400);
+    const res = calcularPrefactibilidadCompleta(inputs);
+    setResultados(res);
+    setPaso(2);
   };
 
-  const handleRecalcular = (nuevosInputs: KUBICInputs) => {
+  const handleRecalcularParams = (nuevosInputs: KUBICInputs) => {
     setInputs(nuevosInputs);
-    const res = calcularPrefactibilidad(nuevosInputs);
+    const res = calcularPrefactibilidadCompleta(nuevosInputs);
     setResultados(res);
   };
 
@@ -125,174 +57,362 @@ export default function Home() {
     }).format(valor);
   };
 
+  const totalPctIndirectos = 
+    inputs.pctEstudiosDiseños + 
+    inputs.pctLicenciasImpuestos + 
+    inputs.pctGerenciaSupervision + 
+    inputs.pctVentasComercial + 
+    inputs.pctImprevistosFinancieros;
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans">
+      {/* Header */}
       <header className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-md">
         <div className="flex items-center space-x-3">
           <span className="text-2xl font-black tracking-wider text-orange-500">KUBIC</span>
           <span className="text-xs border-l border-slate-700 pl-3 text-slate-400 uppercase tracking-widest hidden sm:inline">
-            Análisis Inmobiliario Express
+            Modelo Profesional de Prefactibilidad Inmobiliaria
           </span>
         </div>
         <div className="text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-slate-300">
-          Bogotá D.C. / POT Dec. 555
+          Versión Técnica Multivariable
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto p-4 sm:p-6">
-        {/* PASO 1: Buscador */}
+        {/* PASO 1: Captura Técnica Completa */}
         {paso === 1 && (
-          <div className="bg-white rounded-2xl shadow-xl p-8 my-8 text-center max-w-2xl mx-auto border border-slate-200">
-            <div className="inline-block bg-orange-100 text-orange-700 font-bold text-xs uppercase px-3 py-1 rounded-full mb-4">
-              Prefactibilidad en 2 minutos
+          <div className="space-y-6 my-4">
+            {/* Banner Orientación Norma */}
+            <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-lg border border-slate-700">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <span className="text-xs font-bold text-orange-400 uppercase tracking-wider">¿Necesitas verificar la norma local?</span>
+                  <h2 className="text-xl font-bold mt-1">Consultar Portales de Planeación Oficiales</h2>
+                  <p className="text-slate-300 text-xs mt-1 max-w-xl">
+                    Consulta el Área, I.O. e I.C. oficial en el visor catastral o POT de tu municipio e ingrésalos en el formulario.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href="https://sinupotp.sdp.gov.co/sinupot/index.jsf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow transition flex items-center gap-1"
+                  >
+                    🔍 SINUPOT (Bogotá) ↗
+                  </a>
+                  <a
+                    href="https://www.igac.gov.co/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow transition flex items-center gap-1"
+                  >
+                    🌐 IGAC (Nacional) ↗
+                  </a>
+                </div>
+              </div>
             </div>
-            <h1 className="text-3xl font-extrabold text-slate-900 mb-3">
-              Evalúa la viabilidad de tu lote o proyecto
-            </h1>
-            <p className="text-slate-600 text-sm mb-8">
-              Ingresa la dirección en Bogotá para obtener el área, norma urbana y residual del suelo en tiempo real.
-            </p>
 
-            <form onSubmit={handleBuscarDireccion} className="space-y-4">
-              <input
-                type="text"
-                placeholder="Ej: Calle 140 # 11-45 o Cra 15 # 85-10"
-                value={direccion}
-                onChange={(e) => setDireccion(e.target.value)}
-                className="w-full px-5 py-4 text-slate-900 bg-slate-50 border-2 border-slate-300 rounded-xl focus:outline-none focus:border-orange-500 text-lg shadow-inner"
-                required
-              />
+            {/* Formulario Estructurado */}
+            <form onSubmit={handleCalcular} className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200 space-y-8">
+              <div>
+                <h1 className="text-2xl font-extrabold text-slate-900">Estructuración de Prefactibilidad</h1>
+                <p className="text-slate-500 text-xs mt-1">Ingresa todos los parámetros físicos, urbanísticos, directos e indirectos del proyecto.</p>
+              </div>
+
+              {/* 1. Identificación y Ubicación */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">1. Identificación y Clasificación</h3>
+                <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Nombre / Referencia</label>
+                    <input
+                      type="text"
+                      placeholder="Ej: Edificio Lisboa 134"
+                      value={inputs.nombreProyecto}
+                      onChange={(e) => setInputs({ ...inputs, nombreProyecto: e.target.value })}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Ciudad / Municipio</label>
+                    <input
+                      type="text"
+                      value={inputs.ciudad}
+                      onChange={(e) => setInputs({ ...inputs, ciudad: e.target.value })}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Uso de Suelo Predominante</label>
+                    <select
+                      value={inputs.usoSuelo}
+                      onChange={(e) => setInputs({ ...inputs, usoSuelo: e.target.value })}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
+                    >
+                      <option value="Residencial Multifamiliar">Residencial Multifamiliar</option>
+                      <option value="Comercial / Servicios">Comercial / Servicios</option>
+                      <option value="Mixto (Comercio + Vivienda)">Mixto (Comercio + Vivienda)</option>
+                      <option value="Oficinas / Corporativo">Oficinas / Corporativo</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Estrato Socioeconómico</label>
+                    <select
+                      value={inputs.estrato}
+                      onChange={(e) => setInputs({ ...inputs, estrato: Number(e.target.value) })}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
+                    >
+                      <option value={1}>Estrato 1</option>
+                      <option value={2}>Estrato 2</option>
+                      <option value={3}>Estrato 3</option>
+                      <option value={4}>Estrato 4</option>
+                      <option value={5}>Estrato 5</option>
+                      <option value={6}>Estrato 6</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Física del Lote y Subestructura */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">2. Física del Lote y Subestructura (Sótanos)</h3>
+                <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Área Lote (m²)</label>
+                    <input
+                      type="number"
+                      value={inputs.areaLote}
+                      onChange={(e) => {
+                        const area = Number(e.target.value);
+                        setInputs({
+                          ...inputs,
+                          areaLote: area,
+                          areaSotanoPorNivel: area * inputs.indiceOcupacion
+                        });
+                      }}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm font-bold bg-slate-50 focus:border-orange-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Índice Ocupación (I.O.)</label>
+                    <input
+                      type="number"
+                      step="0.05"
+                      min="0.1"
+                      max="1.0"
+                      value={inputs.indiceOcupacion}
+                      onChange={(e) => {
+                        const io = Number(e.target.value);
+                        setInputs({
+                          ...inputs,
+                          indiceOcupacion: io,
+                          areaSotanoPorNivel: inputs.areaLote * io
+                        });
+                      }}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Índice Construcción (I.C.)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0.5"
+                      max="12.0"
+                      value={inputs.indiceConstruccion}
+                      onChange={(e) => setInputs({ ...inputs, indiceConstruccion: Number(e.target.value) })}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Eficiencia Planta (%)</label>
+                    <input
+                      type="number"
+                      min="50"
+                      max="95"
+                      value={inputs.eficienciaPlantaPct}
+                      onChange={(e) => setInputs({ ...inputs, eficienciaPlantaPct: Number(e.target.value) })}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Niveles de Sótano</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="6"
+                      value={inputs.numSotanos}
+                      onChange={(e) => setInputs({ ...inputs, numSotanos: Number(e.target.value) })}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Área Sótano por Nivel (m²)</label>
+                    <input
+                      type="number"
+                      value={inputs.areaSotanoPorNivel}
+                      onChange={(e) => setInputs({ ...inputs, areaSotanoPorNivel: Number(e.target.value) })}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Costos Directos */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">3. Costos Directos de Obra ($/m²)</h3>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Costo Directo Sobre Rasante ($/m² construidos)</label>
+                    <input
+                      type="number"
+                      value={inputs.costoDirectoSobreM2}
+                      onChange={(e) => setInputs({ ...inputs, costoDirectoSobreM2: Number(e.target.value) })}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Costo Directo Bajo Rasante / Sótanos ($/m²)</label>
+                    <input
+                      type="number"
+                      value={inputs.costoDirectoBajoM2}
+                      onChange={(e) => setInputs({ ...inputs, costoDirectoBajoM2: Number(e.target.value) })}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Desglose Costos Indirectos */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center border-b pb-1">
+                  <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider">4. Desglose de Costos Indirectos (% sobre Costo Directo)</h3>
+                  <span className="text-xs font-extrabold text-slate-700">Total Indirectos: {totalPctIndirectos.toFixed(1)}%</span>
+                </div>
+                <div className="grid sm:grid-cols-3 md:grid-cols-5 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Estudios / Diseños (%)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={inputs.pctEstudiosDiseños}
+                      onChange={(e) => setInputs({ ...inputs, pctEstudiosDiseños: Number(e.target.value) })}
+                      className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-slate-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Licencias / Impuestos (%)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={inputs.pctLicenciasImpuestos}
+                      onChange={(e) => setInputs({ ...inputs, pctLicenciasImpuestos: Number(e.target.value) })}
+                      className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-slate-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Gerencia / Interventoría (%)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={inputs.pctGerenciaSupervision}
+                      onChange={(e) => setInputs({ ...inputs, pctGerenciaSupervision: Number(e.target.value) })}
+                      className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-slate-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Ventas / Mercadeo (%)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={inputs.pctVentasComercial}
+                      onChange={(e) => setInputs({ ...inputs, pctVentasComercial: Number(e.target.value) })}
+                      className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-slate-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Imprevistos / Finan. (%)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={inputs.pctImprevistosFinancieros}
+                      onChange={(e) => setInputs({ ...inputs, pctImprevistosFinancieros: Number(e.target.value) })}
+                      className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-slate-50"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. Precios Venta, Valor Lote y Margen */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">5. Valor de Venta, Lote y Margen Objetivo</h3>
+                <div className="grid sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Precio Venta ($/m² útil vendible)</label>
+                    <input
+                      type="number"
+                      value={inputs.precioVentaM2}
+                      onChange={(e) => setInputs({ ...inputs, precioVentaM2: Number(e.target.value) })}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 font-bold focus:border-orange-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Valor Pactado Lote ($ - Opción si ya existe)</label>
+                    <input
+                      type="number"
+                      placeholder="Dejar en 0 para calcular Residual"
+                      value={inputs.valorLotePactado || ''}
+                      onChange={(e) => setInputs({ ...inputs, valorLotePactado: Number(e.target.value) })}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Margen Objetivo Desarrollador (%)</label>
+                    <input
+                      type="number"
+                      value={inputs.margenObjetivoPct}
+                      onChange={(e) => setInputs({ ...inputs, margenObjetivoPct: Number(e.target.value) })}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
               <button
                 type="submit"
-                disabled={cargando}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition text-lg flex items-center justify-center"
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white font-black py-4 px-6 rounded-xl shadow-lg transition text-base mt-6"
               >
-                {cargando ? 'Analizando Nomenclatura...' : 'Iniciar Análisis Gratis'}
+                Generar Informe de Prefactibilidad Financiera →
               </button>
             </form>
           </div>
         )}
 
-        {/* PASO 2: Parámetros */}
-        {paso === 2 && (
-          <div className="grid md:grid-cols-3 gap-6 my-4">
-            <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-lg">
-              <span className="text-xs font-bold text-orange-400 uppercase tracking-wider">Norma Detectada</span>
-              <h2 className="text-xl font-bold mt-1 mb-4 text-white">{predioActual.direccion}</h2>
-              
-              <div className="space-y-3 text-sm border-t border-slate-800 pt-4">
-                <div>
-                  <span className="text-slate-400 block text-xs">Localidad / Barrio</span>
-                  <span className="font-semibold text-orange-300">{predioActual.localidad} - {predioActual.barrio}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-xs">CHIP Catastral</span>
-                  <span className="font-semibold">{predioActual.chip}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-xs">Tratamiento Urbanístico</span>
-                  <span className="font-semibold">{predioActual.tratamiento}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-xs">Área Lote Calculada</span>
-                  <span className="font-semibold text-lg text-emerald-400">{inputs.areaLote} m²</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-                  <div>
-                    <span className="text-slate-400 block text-xs">I. Ocupación</span>
-                    <span className="font-semibold">{inputs.indiceOcupacion}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block text-xs">I. Construcción</span>
-                    <span className="font-semibold">{inputs.indiceConstruccion}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="md:col-span-2 bg-white p-6 rounded-2xl shadow-lg border border-slate-200 space-y-5">
-              <h2 className="text-lg font-bold text-slate-900 pb-2 border-b">
-                Ajuste de Variables de Proyecto
-              </h2>
-
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Área del Lote (m²)
-                  </label>
-                  <input
-                    type="number"
-                    value={inputs.areaLote}
-                    onChange={(e) => handleRecalcular({ ...inputs, areaLote: Number(e.target.value) })}
-                    className="w-full p-2 border rounded-lg text-sm bg-slate-50 font-bold text-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Niveles de Sótano: {inputs.numSotanos}
-                  </label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="5"
-                    value={inputs.numSotanos}
-                    onChange={(e) => handleRecalcular({ ...inputs, numSotanos: Number(e.target.value) })}
-                    className="w-full accent-orange-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Costo Obra ($/m² sobre rasante)
-                  </label>
-                  <input
-                    type="number"
-                    value={inputs.costoObraSobreM2}
-                    onChange={(e) => handleRecalcular({ ...inputs, costoObraSobreM2: Number(e.target.value) })}
-                    className="w-full p-2 border rounded-lg text-sm bg-slate-50"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Precio Venta ($/m² útil)
-                  </label>
-                  <input
-                    type="number"
-                    value={inputs.precioVentaM2}
-                    onChange={(e) => handleRecalcular({ ...inputs, precioVentaM2: Number(e.target.value) })}
-                    className="w-full p-2 border rounded-lg text-sm bg-slate-50"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-4 border-t flex justify-between">
-                <button
-                  onClick={() => setPaso(1)}
-                  className="px-4 py-2 text-slate-600 font-bold text-sm"
-                >
-                  ← Cambiar Dirección
-                </button>
-                <button
-                  onClick={() => setPaso(3)}
-                  className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-xl shadow-md transition"
-                >
-                  Ver Resultados de Viabilidad →
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PASO 3: Dashboard */}
-        {paso === 3 && resultados && (
+        {/* PASO 2: Dashboard Completo de Resultados */}
+        {paso === 2 && resultados && (
           <div className="space-y-6 my-4">
+            {/* Encabezado Principal */}
             <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-6">
               <div>
-                <span className="text-xs text-orange-400 font-bold uppercase tracking-wider">Resultado de Prefactibilidad</span>
-                <h1 className="text-2xl font-black mt-1">Diagnóstico KUBIC</h1>
-                <p className="text-slate-400 text-sm">{predioActual.direccion}</p>
+                <span className="text-xs text-orange-400 font-bold uppercase tracking-wider">{inputs.ciudad} | Estrato {inputs.estrato} | {inputs.usoSuelo}</span>
+                <h1 className="text-2xl font-black mt-1">{inputs.nombreProyecto || 'Proyecto Evaluado'}</h1>
+                <p className="text-slate-400 text-xs mt-1">
+                  Lote: {inputs.areaLote} m² | I.O: {inputs.indiceOcupacion} | I.C: {inputs.indiceConstruccion} | Eficiencia: {inputs.eficienciaPlantaPct}%
+                </p>
               </div>
 
               <div className="flex items-center gap-4 bg-slate-800 p-4 rounded-xl border border-slate-700">
@@ -301,53 +421,110 @@ export default function Home() {
                   resultados.estadoViabilidad === 'AMARILLO' ? 'bg-amber-500' : 'bg-rose-500'
                 }`} />
                 <div>
-                  <span className="block text-xs text-slate-400 uppercase font-bold">Estado</span>
+                  <span className="block text-xs text-slate-400 uppercase font-bold">Diagnóstico</span>
                   <span className={`text-xl font-black ${
                     resultados.estadoViabilidad === 'VERDE' ? 'text-emerald-400' :
                     resultados.estadoViabilidad === 'AMARILLO' ? 'text-amber-400' : 'text-rose-400'
                   }`}>
-                    {resultados.estadoViabilidad === 'VERDE' ? 'VIABLE' :
-                     resultados.estadoViabilidad === 'AMARILLO' ? 'AJUSTADO' : 'ALTO RIESGO'}
+                    {resultados.estadoViabilidad === 'VERDE' ? 'PROYECTO VIABLE' :
+                     resultados.estadoViabilidad === 'AMARILLO' ? 'MARGEN AJUSTADO' : 'ALTO RIESGO'}
                   </span>
                 </div>
               </div>
             </div>
 
+            {/* Residual del Suelo */}
             <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white p-6 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-center">
               <div>
-                <span className="text-xs uppercase tracking-widest font-bold opacity-80">Valor Máximo Sugerido del Lote</span>
+                <span className="text-xs uppercase tracking-widest font-bold opacity-80">Valor Máximo Sugerido de Compra de Tierra</span>
                 <h2 className="text-3xl font-black mt-1">RESIDUAL DEL SUELO</h2>
               </div>
               <div className="text-right mt-4 sm:mt-0 bg-black/20 px-6 py-3 rounded-xl backdrop-blur-sm">
-                <span className="text-3xl font-black">{formatCOP(resultados.residualSuelo)}</span>
+                <span className="text-3xl font-black">{formatCOP(resultados.residualSueloSugerido)}</span>
+                <span className="block text-xs opacity-90 font-medium mt-0.5">
+                  ({formatCOP(resultados.valorM2LoteSugerido)} / m² de lote)
+                </span>
               </div>
             </div>
 
-            <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white p-4 rounded-xl shadow border border-slate-200">
-                <span className="text-xs text-slate-500 font-bold block">Área Lote</span>
-                <span className="text-xl font-black text-slate-800">{inputs.areaLote} m²</span>
-              </div>
-              <div className="bg-white p-4 rounded-xl shadow border border-slate-200">
-                <span className="text-xs text-slate-500 font-bold block">Área Vendible Útil</span>
-                <span className="text-xl font-black text-slate-800">{resultados.areaVendible.toLocaleString()} m²</span>
-              </div>
-              <div className="bg-white p-4 rounded-xl shadow border border-slate-200">
-                <span className="text-xs text-slate-500 font-bold block">Ventas Totales</span>
-                <span className="text-xl font-black text-emerald-600">{formatCOP(resultados.ventasTotales)}</span>
-              </div>
-              <div className="bg-white p-4 rounded-xl shadow border border-slate-200">
-                <span className="text-xs text-slate-500 font-bold block">Utilidad Estimada</span>
-                <span className="text-xl font-black text-orange-600">{formatCOP(resultados.utilidadEstimada)}</span>
+            {/* Balance de Áreas */}
+            <div className="bg-white p-6 rounded-2xl shadow border border-slate-200">
+              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b pb-2 mb-4">Balance Físico de Edificabilidad y Áreas</h3>
+              <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div className="bg-slate-50 p-3 rounded-xl border">
+                  <span className="text-xs text-slate-500 block">Área Construida Sobre Rasante</span>
+                  <span className="text-lg font-black text-slate-800">{resultados.areaTotalSobreRasante.toLocaleString()} m²</span>
+                </div>
+                <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+                  <span className="text-xs text-emerald-700 font-bold block">Área Útil Vendible</span>
+                  <span className="text-lg font-black text-emerald-800">{resultados.areaVendibleUtil.toLocaleString()} m²</span>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl border">
+                  <span className="text-xs text-slate-500 block">Área No Vendible (Circulaciones)</span>
+                  <span className="text-lg font-black text-slate-800">{resultados.areaNoVendible.toLocaleString()} m²</span>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl border">
+                  <span className="text-xs text-slate-500 block">Área Construida en Sótanos ({inputs.numSotanos} N)</span>
+                  <span className="text-lg font-black text-slate-800">{resultados.areaTotalSotanos.toLocaleString()} m²</span>
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-4">
+            {/* Estratificación Financiera */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Costos */}
+              <div className="bg-white p-6 rounded-2xl shadow border border-slate-200 space-y-3">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b pb-2">Estructura de Costos del Proyecto</h3>
+                <div className="flex justify-between text-sm py-1 border-b">
+                  <span className="text-slate-600">Costos Directos Sobre Rasante:</span>
+                  <span className="font-bold">{formatCOP(resultados.costoDirectoSobre)}</span>
+                </div>
+                <div className="flex justify-between text-sm py-1 border-b">
+                  <span className="text-slate-600">Costos Directos Bajo Rasante (Sótanos):</span>
+                  <span className="font-bold">{formatCOP(resultados.costoDirectoBajo)}</span>
+                </div>
+                <div className="flex justify-between text-sm py-1 border-b bg-slate-50 font-bold px-2 rounded">
+                  <span>Total Costos Directos:</span>
+                  <span className="text-slate-900">{formatCOP(resultados.costoDirectoTotal)}</span>
+                </div>
+                <div className="flex justify-between text-sm py-1 border-b">
+                  <span className="text-slate-600">Total Costos Indirectos ({totalPctIndirectos.toFixed(1)}%):</span>
+                  <span className="font-bold text-orange-600">{formatCOP(resultados.costosIndirectosTotal)}</span>
+                </div>
+                <div className="flex justify-between text-base font-black pt-2 text-slate-900">
+                  <span>Costo Total (Sin Lote):</span>
+                  <span>{formatCOP(resultados.costoTotalProyectoSinLote)}</span>
+                </div>
+              </div>
+
+              {/* Ventas y Utilidad */}
+              <div className="bg-white p-6 rounded-2xl shadow border border-slate-200 space-y-3">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b pb-2">Ingresos y Retorno</h3>
+                <div className="flex justify-between text-sm py-1 border-b">
+                  <span className="text-slate-600">Ventas Totales Proyectadas:</span>
+                  <span className="font-black text-emerald-600 text-lg">{formatCOP(resultados.ventasTotales)}</span>
+                </div>
+                <div className="flex justify-between text-sm py-1 border-b">
+                  <span className="text-slate-600">Utilidad Bruta Estimada:</span>
+                  <span className="font-bold text-slate-800">{formatCOP(resultados.utilidadEstimada)}</span>
+                </div>
+                <div className="flex justify-between text-sm py-1 border-b bg-orange-50 font-bold px-2 rounded">
+                  <span className="text-orange-900">Margen sobre Ventas Obtenido:</span>
+                  <span className="text-orange-700 text-lg font-black">{resultados.margenSobreVentasPct.toFixed(1)}%</span>
+                </div>
+                <p className="text-xs text-slate-500 pt-2">
+                  Margen mínimo objetivo configurado: <strong className="text-slate-700">{inputs.margenObjetivoPct}%</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* Botón Volver */}
+            <div className="flex justify-between items-center pt-2">
               <button
-                onClick={() => setPaso(2)}
-                className="px-4 py-2 text-slate-600 font-bold text-sm bg-white rounded-lg border shadow-sm"
+                onClick={() => setPaso(1)}
+                className="px-5 py-2.5 text-slate-700 font-bold text-sm bg-white rounded-xl border border-slate-300 shadow-sm hover:bg-slate-50 transition"
               >
-                ← Ajustar Parámetros
+                ← Modificar Parámetros y Volver a Calcular
               </button>
             </div>
           </div>
