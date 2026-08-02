@@ -6,7 +6,7 @@ import { calcularPrefactibilidadCompleta, KUBICInputs, KUBICResults } from '../l
 export default function Home() {
   const [paso, setPaso] = useState<1 | 2>(1);
 
-  // Formulario con todas las variables técnicas y financieras
+  // Formulario con datos iniciales
   const [inputs, setInputs] = useState<KUBICInputs>({
     nombreProyecto: '',
     ciudad: 'Bogotá D.C.',
@@ -18,7 +18,7 @@ export default function Home() {
     eficienciaPlantaPct: 82,
 
     numSotanos: 2,
-    areaSotanoPorNivel: 560, // 800 * 0.7
+    areaSotanoPorNivel: 560,
 
     costoDirectoSobreM2: 3200000,
     costoDirectoBajoM2: 3800000,
@@ -29,24 +29,78 @@ export default function Home() {
     pctVentasComercial: 5.0,
     pctImprevistosFinancieros: 4.5,
 
-    precioVentaM2: 8500000,
-    valorLotePactado: 0, // 0 para calcular Residual
+    precioVentaM2: 7500000,
+    valorLotePactado: 0,
     margenObjetivoPct: 20,
   });
 
   const [resultados, setResultados] = useState<KUBICResults | null>(null);
+
+  // Lógica Reflexiva: Ajusta precios de venta y costos según Uso y Estrato seleccionados
+  const actualizarSugerenciasMercado = (estratoNuevo: number, usoNuevo: string) => {
+    let ventaSugerida = 7500000;
+    let costoSobreSugerido = 3200000;
+    let eficienciaSugerida = 82;
+
+    // Sugerencias por Estrato
+    switch (estratoNuevo) {
+      case 1:
+      case 2:
+        ventaSugerida = 3000000;
+        costoSobreSugerido = 2000000;
+        break;
+      case 3:
+        ventaSugerida = 5200000;
+        costoSobreSugerido = 2600000;
+        break;
+      case 4:
+        ventaSugerida = 7500000;
+        costoSobreSugerido = 3200000;
+        break;
+      case 5:
+        ventaSugerida = 9800000;
+        costoSobreSugerido = 3900000;
+        break;
+      case 6:
+        ventaSugerida = 14500000;
+        costoSobreSugerido = 4800000;
+        break;
+    }
+
+    // Ajustes por Uso del Suelo
+    if (usoNuevo.includes('VIS')) {
+      ventaSugerida = 2800000;
+      costoSobreSugerido = 1950000;
+      eficienciaSugerida = 85;
+    } else if (usoNuevo.includes('Comercial')) {
+      ventaSugerida = Math.round(ventaSugerida * 1.35);
+      costoSobreSugerido = Math.round(costoSobreSugerido * 1.15);
+      eficienciaSugerida = 88;
+    } else if (usoNuevo.includes('Institucional') || usoNuevo.includes('Salud')) {
+      ventaSugerida = Math.round(ventaSugerida * 1.1);
+      costoSobreSugerido = Math.round(costoSobreSugerido * 1.25);
+      eficienciaSugerida = 75; // Circulaciones más amplias
+    } else if (usoNuevo.includes('Oficinas')) {
+      ventaSugerida = Math.round(ventaSugerida * 1.2);
+      costoSobreSugerido = Math.round(costoSobreSugerido * 1.18);
+      eficienciaSugerida = 80;
+    }
+
+    setInputs((prev) => ({
+      ...prev,
+      estrato: estratoNuevo,
+      usoSuelo: usoNuevo,
+      precioVentaM2: ventaSugerida,
+      costoDirectoSobreM2: costoSobreSugerido,
+      eficienciaPlantaPct: eficienciaSugerida,
+    }));
+  };
 
   const handleCalcular = (e: React.FormEvent) => {
     e.preventDefault();
     const res = calcularPrefactibilidadCompleta(inputs);
     setResultados(res);
     setPaso(2);
-  };
-
-  const handleRecalcularParams = (nuevosInputs: KUBICInputs) => {
-    setInputs(nuevosInputs);
-    const res = calcularPrefactibilidadCompleta(nuevosInputs);
-    setResultados(res);
   };
 
   const formatCOP = (valor: number) => {
@@ -64,6 +118,15 @@ export default function Home() {
     inputs.pctVentasComercial + 
     inputs.pctImprevistosFinancieros;
 
+  // Lógica del Lote para el Resumen Completo
+  const esLotePactado = inputs.valorLotePactado && inputs.valorLotePactado > 0;
+  const loteMonto = esLotePactado ? inputs.valorLotePactado! : (resultados?.residualSueloSugerido || 0);
+  const loteM2Tierra = inputs.areaLote > 0 ? loteMonto / inputs.areaLote : 0;
+  
+  const costoTotalConLote = (resultados?.costoTotalProyectoSinLote || 0) + loteMonto;
+  const pesoLoteVentas = (resultados?.ventasTotales && resultados.ventasTotales > 0) ? (loteMonto / resultados.ventasTotales) * 100 : 0;
+  const pesoLoteCostoTotal = costoTotalConLote > 0 ? (loteMonto / costoTotalConLote) * 100 : 0;
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans">
       {/* Header */}
@@ -75,12 +138,12 @@ export default function Home() {
           </span>
         </div>
         <div className="text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-slate-300">
-          Versión Técnica Multivariable
+          Simulador Reflexivo Multivariable
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto p-4 sm:p-6">
-        {/* PASO 1: Captura Técnica Completa */}
+        {/* PASO 1: Formulario */}
         {paso === 1 && (
           <div className="space-y-6 my-4">
             {/* Banner Orientación Norma */}
@@ -121,9 +184,9 @@ export default function Home() {
                 <p className="text-slate-500 text-xs mt-1">Ingresa todos los parámetros físicos, urbanísticos, directos e indirectos del proyecto.</p>
               </div>
 
-              {/* 1. Identificación y Ubicación */}
+              {/* 1. Identificación y Clasificación */}
               <div className="space-y-4">
-                <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">1. Identificación y Clasificación</h3>
+                <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">1. Clasificación del Proyecto (Sugerencias Automáticas)</h3>
                 <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">Nombre / Referencia</label>
@@ -147,31 +210,33 @@ export default function Home() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Uso de Suelo Predominante</label>
-                    <select
-                      value={inputs.usoSuelo}
-                      onChange={(e) => setInputs({ ...inputs, usoSuelo: e.target.value })}
-                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
-                    >
-                      <option value="Residencial Multifamiliar">Residencial Multifamiliar</option>
-                      <option value="Comercial / Servicios">Comercial / Servicios</option>
-                      <option value="Mixto (Comercio + Vivienda)">Mixto (Comercio + Vivienda)</option>
-                      <option value="Oficinas / Corporativo">Oficinas / Corporativo</option>
-                    </select>
-                  </div>
-                  <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">Estrato Socioeconómico</label>
                     <select
                       value={inputs.estrato}
-                      onChange={(e) => setInputs({ ...inputs, estrato: Number(e.target.value) })}
-                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
+                      onChange={(e) => actualizarSugerenciasMercado(Number(e.target.value), inputs.usoSuelo)}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none font-bold text-slate-800"
                     >
-                      <option value={1}>Estrato 1</option>
-                      <option value={2}>Estrato 2</option>
-                      <option value={3}>Estrato 3</option>
-                      <option value={4}>Estrato 4</option>
-                      <option value={5}>Estrato 5</option>
-                      <option value={6}>Estrato 6</option>
+                      <option value={1}>Estrato 1 (VIP / VIS)</option>
+                      <option value={2}>Estrato 2 (VIS)</option>
+                      <option value={3}>Estrato 3 (No VIS Media/Baja)</option>
+                      <option value={4}>Estrato 4 (No VIS Media)</option>
+                      <option value={5}>Estrato 5 (No VIS Media/Alta)</option>
+                      <option value={6}>Estrato 6 (No VIS Alta / Exclusivo)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Uso de Suelo Principal</label>
+                    <select
+                      value={inputs.usoSuelo}
+                      onChange={(e) => actualizarSugerenciasMercado(inputs.estrato, e.target.value)}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none font-bold text-slate-800"
+                    >
+                      <option value="Residencial Multifamiliar">Residencial Multifamiliar (No VIS)</option>
+                      <option value="Residencial VIS / VIP">Residencial VIS / VIP</option>
+                      <option value="Comercial / Locales / Retail">Comercial / Locales / Retail</option>
+                      <option value="Oficinas / Corporativo">Oficinas / Corporativo</option>
+                      <option value="Institucional / Salud / Senior Housing">Institucional / Salud / Senior Housing</option>
+                      <option value="Mixto (Comercio + Vivienda/Oficinas)">Mixto (Comercio + Vivienda/Oficinas)</option>
                     </select>
                   </div>
                 </div>
@@ -365,15 +430,15 @@ export default function Home() {
                       type="number"
                       value={inputs.precioVentaM2}
                       onChange={(e) => setInputs({ ...inputs, precioVentaM2: Number(e.target.value) })}
-                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 font-bold focus:border-orange-500 focus:outline-none"
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 font-bold text-emerald-700 focus:border-orange-500 focus:outline-none"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Valor Pactado Lote ($ - Opción si ya existe)</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Valor Pedido/Pactado Lote ($ - Opción)</label>
                     <input
                       type="number"
-                      placeholder="Dejar en 0 para calcular Residual"
+                      placeholder="Dejar en 0 para calcular Residual Sugerido"
                       value={inputs.valorLotePactado || ''}
                       onChange={(e) => setInputs({ ...inputs, valorLotePactado: Number(e.target.value) })}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
@@ -402,7 +467,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* PASO 2: Dashboard Completo de Resultados */}
+        {/* PASO 2: Dashboard Completo */}
         {paso === 2 && resultados && (
           <div className="space-y-6 my-4">
             {/* Encabezado Principal */}
@@ -433,17 +498,48 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Residual del Suelo */}
+            {/* Banner Sugerido del Lote */}
             <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white p-6 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-center">
               <div>
-                <span className="text-xs uppercase tracking-widest font-bold opacity-80">Valor Máximo Sugerido de Compra de Tierra</span>
-                <h2 className="text-3xl font-black mt-1">RESIDUAL DEL SUELO</h2>
+                <span className="text-xs uppercase tracking-widest font-bold opacity-90">
+                  {esLotePactado ? 'VALOR PACTADO CON PROPIETARIO' : 'RESIDUAL DEL SUELO (SUGERIDO MÁXIMO)'}
+                </span>
+                <h2 className="text-3xl font-black mt-1">
+                  {esLotePactado ? 'VALOR DE COMPRA DE TIERRA' : 'MÁXIMO VALOR SUGERIDO DEL LOTE'}
+                </h2>
               </div>
               <div className="text-right mt-4 sm:mt-0 bg-black/20 px-6 py-3 rounded-xl backdrop-blur-sm">
-                <span className="text-3xl font-black">{formatCOP(resultados.residualSueloSugerido)}</span>
+                <span className="text-3xl font-black">{formatCOP(loteMonto)}</span>
                 <span className="block text-xs opacity-90 font-medium mt-0.5">
-                  ({formatCOP(resultados.valorM2LoteSugerido)} / m² de lote)
+                  ({formatCOP(loteM2Tierra)} / m² de tierra | {pesoLoteVentas.toFixed(1)}% de las Ventas)
                 </span>
+              </div>
+            </div>
+
+            {/* BLOQUE EXCLUSIVO DE DETALLE DEL LOTE */}
+            <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl shadow-sm">
+              <h3 className="text-xs font-black text-amber-900 uppercase tracking-wider border-b border-amber-200 pb-2 mb-4">
+                Análisis y Detalle Específico del Suelo / Lote
+              </h3>
+              <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm">
+                  <span className="text-xs text-amber-800 font-medium block">Criterio de Evaluación</span>
+                  <span className="text-sm font-black text-amber-950 mt-1 block">
+                    {esLotePactado ? 'Monto Pactado / Pedido' : 'Residual Financiero Sugerido'}
+                  </span>
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm">
+                  <span className="text-xs text-amber-800 font-medium block">Valor por m² de Lote</span>
+                  <span className="text-lg font-black text-amber-950 mt-1 block">{formatCOP(loteM2Tierra)}</span>
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm">
+                  <span className="text-xs text-amber-800 font-medium block">Incidencia en Ventas (%)</span>
+                  <span className="text-lg font-black text-amber-950 mt-1 block">{pesoLoteVentas.toFixed(1)}%</span>
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm">
+                  <span className="text-xs text-amber-800 font-medium block">Peso en Costo Total (%)</span>
+                  <span className="text-lg font-black text-amber-950 mt-1 block">{pesoLoteCostoTotal.toFixed(1)}%</span>
+                </div>
               </div>
             </div>
 
@@ -472,49 +568,76 @@ export default function Home() {
 
             {/* Estratificación Financiera */}
             <div className="grid md:grid-cols-2 gap-6">
-              {/* Costos */}
+              {/* Desglose Completo de Costos e Inversión */}
               <div className="bg-white p-6 rounded-2xl shadow border border-slate-200 space-y-3">
-                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b pb-2">Estructura de Costos del Proyecto</h3>
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b pb-2">Estructura Total de Inversión</h3>
+                
                 <div className="flex justify-between text-sm py-1 border-b">
                   <span className="text-slate-600">Costos Directos Sobre Rasante:</span>
                   <span className="font-bold">{formatCOP(resultados.costoDirectoSobre)}</span>
                 </div>
+                
                 <div className="flex justify-between text-sm py-1 border-b">
                   <span className="text-slate-600">Costos Directos Bajo Rasante (Sótanos):</span>
                   <span className="font-bold">{formatCOP(resultados.costoDirectoBajo)}</span>
                 </div>
+                
                 <div className="flex justify-between text-sm py-1 border-b bg-slate-50 font-bold px-2 rounded">
-                  <span>Total Costos Directos:</span>
+                  <span>Subtotal Costos Directos:</span>
                   <span className="text-slate-900">{formatCOP(resultados.costoDirectoTotal)}</span>
                 </div>
+                
                 <div className="flex justify-between text-sm py-1 border-b">
-                  <span className="text-slate-600">Total Costos Indirectos ({totalPctIndirectos.toFixed(1)}%):</span>
-                  <span className="font-bold text-orange-600">{formatCOP(resultados.costosIndirectosTotal)}</span>
+                  <span className="text-slate-600">Costos Indirectos ({totalPctIndirectos.toFixed(1)}%):</span>
+                  <span className="font-bold text-slate-800">{formatCOP(resultados.costosIndirectosTotal)}</span>
                 </div>
+
+                <div className="flex justify-between text-sm py-2 border-b bg-amber-100 font-bold px-3 rounded border border-amber-300">
+                  <div className="flex flex-col">
+                    <span className="text-amber-950">
+                      Adquisición de Lote / Tierra {esLotePactado ? '(Pactado)' : '(Residual Sugerido)'}:
+                    </span>
+                    <span className="text-[10px] text-amber-800 font-normal">
+                      Pesa {pesoLoteCostoTotal.toFixed(1)}% de la Inversión Total
+                    </span>
+                  </div>
+                  <span className="text-amber-950 text-base">{formatCOP(loteMonto)}</span>
+                </div>
+
                 <div className="flex justify-between text-base font-black pt-2 text-slate-900">
-                  <span>Costo Total (Sin Lote):</span>
-                  <span>{formatCOP(resultados.costoTotalProyectoSinLote)}</span>
+                  <span>INVERSIÓN TOTAL PROYECTO (CON LOTE):</span>
+                  <span className="text-orange-600">{formatCOP(costoTotalConLote)}</span>
                 </div>
               </div>
 
-              {/* Ventas y Utilidad */}
+              {/* Ventas y Utilidad Obtenida */}
               <div className="bg-white p-6 rounded-2xl shadow border border-slate-200 space-y-3">
-                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b pb-2">Ingresos y Retorno</h3>
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b pb-2">Ingresos y Estado de Resultados</h3>
+                
                 <div className="flex justify-between text-sm py-1 border-b">
                   <span className="text-slate-600">Ventas Totales Proyectadas:</span>
                   <span className="font-black text-emerald-600 text-lg">{formatCOP(resultados.ventasTotales)}</span>
                 </div>
+
                 <div className="flex justify-between text-sm py-1 border-b">
-                  <span className="text-slate-600">Utilidad Bruta Estimada:</span>
-                  <span className="font-bold text-slate-800">{formatCOP(resultados.utilidadEstimada)}</span>
+                  <span className="text-slate-600">(-) Inversión Total (Construcción + Indirectos + Lote):</span>
+                  <span className="font-semibold text-slate-700">{formatCOP(costoTotalConLote)}</span>
                 </div>
-                <div className="flex justify-between text-sm py-1 border-b bg-orange-50 font-bold px-2 rounded">
-                  <span className="text-orange-900">Margen sobre Ventas Obtenido:</span>
-                  <span className="text-orange-700 text-lg font-black">{resultados.margenSobreVentasPct.toFixed(1)}%</span>
+
+                <div className="flex justify-between text-sm py-2 border-b bg-emerald-50 font-bold px-3 rounded border border-emerald-200">
+                  <span className="text-emerald-900">Utilidad Bruta Estimada Desarrollador:</span>
+                  <span className="font-black text-emerald-800 text-lg">{formatCOP(resultados.utilidadEstimada)}</span>
                 </div>
-                <p className="text-xs text-slate-500 pt-2">
-                  Margen mínimo objetivo configurado: <strong className="text-slate-700">{inputs.margenObjetivoPct}%</strong>
-                </p>
+
+                <div className="flex justify-between text-sm py-2 border-b bg-orange-50 font-bold px-3 rounded border border-orange-200">
+                  <span className="text-orange-900">Margen de Utilidad sobre Ventas Obtenido:</span>
+                  <span className="text-orange-700 text-xl font-black">{resultados.margenSobreVentasPct.toFixed(1)}%</span>
+                </div>
+
+                <div className="text-xs text-slate-500 pt-2 space-y-1">
+                  <p>• Margen Mínimo Objetivo Configurado: <strong className="text-slate-700">{inputs.margenObjetivoPct}%</strong></p>
+                  <p>• Incidencia de Tierra sobre Ventas: <strong className="text-slate-700">{pesoLoteVentas.toFixed(1)}%</strong></p>
+                </div>
               </div>
             </div>
 
