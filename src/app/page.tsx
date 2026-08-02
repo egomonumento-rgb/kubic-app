@@ -6,7 +6,6 @@ import { calcularPrefactibilidadCompleta, KUBICInputs, KUBICResults } from '../l
 export default function Home() {
   const [paso, setPaso] = useState<1 | 2>(1);
 
-  // Formulario con datos iniciales calibrados
   const [inputs, setInputs] = useState<KUBICInputs>({
     nombreProyecto: '',
     ciudad: 'Bogotá D.C.',
@@ -21,7 +20,7 @@ export default function Home() {
     areaSotanoPorNivel: 560,
 
     costoDirectoSobreM2: 5200000,
-    costoDirectoBajoM2: 4200000,
+    coeficienteSotano: 1.20, // Sótanos cuestan 20% más por m2
 
     pctEstudiosDiseños: 4.0,
     pctLicenciasImpuestos: 3.5,
@@ -36,10 +35,10 @@ export default function Home() {
 
   const [resultados, setResultados] = useState<KUBICResults | null>(null);
 
-  // Lógica de Precios Sugeridos por Estrato (Estructurada sobre base Estrato 6 ~ $8.5 MM costo)
   const actualizarSugerenciasMercado = (estratoNuevo: number, usoNuevo: string) => {
     let ventaSugerida = 15000000;
     let costoSobreSugerido = 5200000;
+    let coefSotanoSugerido = 1.20;
     let eficienciaSugerida = 82;
 
     switch (estratoNuevo) {
@@ -47,22 +46,27 @@ export default function Home() {
       case 2:
         ventaSugerida = 2800000;
         costoSobreSugerido = 1950000;
+        coefSotanoSugerido = 1.15;
         break;
       case 3:
         ventaSugerida = 5200000;
         costoSobreSugerido = 2800000;
+        coefSotanoSugerido = 1.18;
         break;
       case 4:
         ventaSugerida = 7800000;
         costoSobreSugerido = 3600000;
+        coefSotanoSugerido = 1.20;
         break;
       case 5:
         ventaSugerida = 10500000;
         costoSobreSugerido = 4400000;
+        coefSotanoSugerido = 1.22;
         break;
       case 6:
         ventaSugerida = 15000000;
         costoSobreSugerido = 5200000;
+        coefSotanoSugerido = 1.25;
         break;
     }
 
@@ -86,6 +90,7 @@ export default function Home() {
       usoSuelo: usoNuevo,
       precioVentaM2: ventaSugerida,
       costoDirectoSobreM2: costoSobreSugerido,
+      coeficienteSotano: coefSotanoSugerido,
       eficienciaPlantaPct: eficienciaSugerida,
     }));
   };
@@ -130,7 +135,7 @@ export default function Home() {
           </span>
         </div>
         <div className="text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-slate-300">
-          Simulador Financiero Tope Lote 20%
+          Equilibrio Suelo (10% - 20%) & Coef. Sótanos
         </div>
       </header>
 
@@ -321,27 +326,36 @@ export default function Home() {
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">3. Costos Directos de Obra ($/m²)</h3>
-                <div className="grid sm:grid-cols-2 gap-4">
+                <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">3. Costos Directos y Coeficiente de Sótanos</h3>
+                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Costo Directo Sobre Rasante ($/m² construidos)</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Costo Directo Sobre Rasante ($/m²)</label>
                     <input
                       type="number"
                       value={inputs.costoDirectoSobreM2}
                       onChange={(e) => setInputs({ ...inputs, costoDirectoSobreM2: Number(e.target.value) })}
-                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none font-bold"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Costo Directo Bajo Rasante / Sótanos ($/m²)</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Coeficiente de Costo en Sótanos (Multiplicador)</label>
                     <input
                       type="number"
-                      value={inputs.costoDirectoBajoM2}
-                      onChange={(e) => setInputs({ ...inputs, costoDirectoBajoM2: Number(e.target.value) })}
-                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
+                      step="0.01"
+                      min="1.0"
+                      max="2.0"
+                      value={inputs.coeficienteSotano}
+                      onChange={(e) => setInputs({ ...inputs, coeficienteSotano: Number(e.target.value) })}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none font-bold text-orange-700"
                       required
                     />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Costo Proyectado Sótano (Resultado)</label>
+                    <div className="p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-100 font-black text-slate-700">
+                      {formatCOP(Math.round(inputs.costoDirectoSobreM2 * inputs.coeficienteSotano))} / m²
+                    </div>
                   </div>
                 </div>
               </div>
@@ -406,7 +420,7 @@ export default function Home() {
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">5. Valor de Venta, Lote Pactado y Margen Mínimo</h3>
+                <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">5. Valor de Venta, Lote Pactado y Margen Objetivo</h3>
                 <div className="grid sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">Precio Venta ($/m² útil vendible)</label>
@@ -422,14 +436,14 @@ export default function Home() {
                     <label className="block text-xs font-bold text-slate-700 mb-1">Valor Pedido/Pactado Lote ($ - Opción)</label>
                     <input
                       type="number"
-                      placeholder="Dejar en 0 para calcular Máximo 20%"
+                      placeholder="Dejar en 0 para calcular Equilibrio 10%-20%"
                       value={inputs.valorLotePactado || ''}
                       onChange={(e) => setInputs({ ...inputs, valorLotePactado: Number(e.target.value) })}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Margen Mínimo Desarrollador (%)</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Margen Objetivo Desarrollador (%)</label>
                     <input
                       type="number"
                       value={inputs.margenObjetivoPct}
@@ -483,10 +497,10 @@ export default function Home() {
             <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white p-6 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-center">
               <div>
                 <span className="text-xs uppercase tracking-widest font-bold opacity-90">
-                  {esLotePactado ? 'VALOR PACTADO CON PROPIETARIO' : 'SUELO SUGERIDO (TOPE MÁXIMO 20% VENTAS)'}
+                  {esLotePactado ? 'VALOR PACTADO CON PROPIETARIO' : 'EQUILIBRIO FINANCIERO DEL SUELO (10% - 20%)'}
                 </span>
                 <h2 className="text-3xl font-black mt-1">
-                  {esLotePactado ? 'VALOR PACTADO DE TIERRA' : 'LOTE MÁXIMO RECOMENDADO'}
+                  {esLotePactado ? 'VALOR PACTADO DE TIERRA' : 'LOTE SUGERIDO EQUILIBRADO'}
                 </h2>
               </div>
               <div className="text-right mt-4 sm:mt-0 bg-black/20 px-6 py-3 rounded-xl backdrop-blur-sm">
@@ -499,13 +513,13 @@ export default function Home() {
 
             <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl shadow-sm">
               <h3 className="text-xs font-black text-amber-900 uppercase tracking-wider border-b border-amber-200 pb-2 mb-4">
-                Análisis y Detalle Específico del Suelo / Lote (Tope 20%)
+                Análisis y Detalle Específico del Suelo / Lote (Rango 10% - 20%)
               </h3>
               <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm">
                   <span className="text-xs text-amber-800 font-medium block">Criterio de Evaluación</span>
                   <span className="text-sm font-black text-amber-950 mt-1 block">
-                    {esLotePactado ? 'Monto Pactado por Propietario' : 'Tope Sugerido (Máx. 20%)'}
+                    {esLotePactado ? 'Monto Pactado Propietario' : 'Sugerencia Equilibrada de Suelo'}
                   </span>
                 </div>
                 <div className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm">
@@ -555,8 +569,10 @@ export default function Home() {
                 </div>
                 
                 <div className="flex justify-between text-sm py-1 border-b">
-                  <span className="text-slate-600">Costos Directos Bajo Rasante (Sótanos):</span>
-                  <span className="font-bold">{formatCOP(resultados.costoDirectoBajo)}</span>
+                  <span className="text-slate-600">
+                    Costos Directos Bajo Rasante (Coef. {inputs.coeficienteSotano}× = {formatCOP(resultados.costoDirectoBajoM2Calculado)}/m²):
+                  </span>
+                  <span className="font-bold text-orange-700">{formatCOP(resultados.costoDirectoBajo)}</span>
                 </div>
                 
                 <div className="flex justify-between text-sm py-1 border-b bg-slate-50 font-bold px-2 rounded">
@@ -572,10 +588,10 @@ export default function Home() {
                 <div className="flex justify-between text-sm py-2 border-b bg-amber-100 font-bold px-3 rounded border border-amber-300">
                   <div className="flex flex-col">
                     <span className="text-amber-950">
-                      Adquisición de Lote / Tierra {esLotePactado ? '(Pactado)' : '(Tope 20% Ventas)'}:
+                      Adquisición de Lote / Tierra {esLotePactado ? '(Pactado)' : '(Equilibrio)'}:
                     </span>
                     <span className="text-[10px] text-amber-800 font-normal">
-                      Pesa {pesoLoteCostoTotal.toFixed(1)}% del Costo Total
+                      Pesa {pesoLoteCostoTotal.toFixed(1)}% del Costo Total | {pesoLoteVentas.toFixed(1)}% de las Ventas
                     </span>
                   </div>
                   <span className="text-amber-950 text-base">{formatCOP(loteMonto)}</span>
