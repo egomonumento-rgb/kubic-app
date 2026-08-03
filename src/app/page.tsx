@@ -150,12 +150,16 @@ export default function Home() {
     inputs.pctVentasComercial + 
     inputs.pctImprevistosFinancieros;
 
-  const esLotePactado = inputs.valorLotePactado && inputs.valorLotePactado > 0;
+  // CÁLCULOS EXPLÍCITOS DEL LOTE Y SUS PESOS
+  const esLotePactado = Boolean(inputs.valorLotePactado && inputs.valorLotePactado > 0);
   const loteMonto = esLotePactado ? inputs.valorLotePactado! : (resultados?.residualSueloSugerido || 0);
   const loteM2Tierra = inputs.areaLote > 0 ? loteMonto / inputs.areaLote : 0;
   
-  const costoTotalConLote = (resultados?.costoTotalProyectoSinLote || 0) + loteMonto;
-  const pesoLoteVentas = (resultados?.ventasTotales && resultados.ventasTotales > 0) ? (loteMonto / resultados.ventasTotales) * 100 : 0;
+  const ventasTotales = resultados?.ventasTotales || 0;
+  const costoTotalSinLote = resultados?.costoTotalProyectoSinLote || 0;
+  const costoTotalConLote = costoTotalSinLote + loteMonto;
+
+  const pesoLoteVentas = ventasTotales > 0 ? (loteMonto / ventasTotales) * 100 : 0;
   const pesoLoteCostoTotal = costoTotalConLote > 0 ? (loteMonto / costoTotalConLote) * 100 : 0;
 
   return (
@@ -176,13 +180,13 @@ export default function Home() {
       <main className="max-w-6xl mx-auto p-4 sm:p-6">
         {paso === 1 && (
           <div className="space-y-6 my-4">
-            {/* Banner Explicativo e Intuitivo */}
+            {/* Banner Explicativo */}
             <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-700">
               <div className="max-w-3xl space-y-2">
                 <span className="inline-block bg-orange-500/20 text-orange-400 text-xs font-bold uppercase px-3 py-1 rounded-full border border-orange-500/30">
                   Simulador Interactivo de Prefactibilidad
                 </span>
-                <h2 className="text-2xl font-black text-white">Evaluación Financiera e Inmobiliaria Exprès</h2>
+                <h2 className="text-2xl font-black text-white">Evaluación Financiera e Inmobiliaria Express</h2>
                 <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
                   Esta plataforma calcula la viabilidad de tu lote o proyecto en tiempo real. 
                   Al seleccionar el <strong>Estrato</strong> y el <strong>Uso del Suelo</strong>, el sistema sugerirá automáticamente indicadores de mercado (ventas por m², costos de construcción y eficiencias). 
@@ -493,6 +497,7 @@ export default function Home() {
 
         {paso === 2 && resultados && (
           <div className="space-y-6 my-4">
+            {/* Header del Informe */}
             <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-6">
               <div>
                 <span className="text-xs text-orange-400 font-bold uppercase tracking-wider">{inputs.ciudad} | Estrato {inputs.estrato} | {inputs.usoSuelo}</span>
@@ -520,49 +525,63 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Banner Destacado del Lote y Porcentaje de Peso */}
             <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white p-6 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-center">
               <div>
                 <span className="text-xs uppercase tracking-widest font-bold opacity-90">
-                  {esLotePactado ? 'VALOR PACTADO CON PROPIETARIO' : 'EQUILIBRIO FINANCIERO DEL SUELO (10% - 20%)'}
+                  {esLotePactado ? 'VALOR PACTADO CON PROPIETARIO' : 'LOTE SUGERIDO (RANGO EQUILIBRIO 10% - 20%)'}
                 </span>
                 <h2 className="text-3xl font-black mt-1">
-                  {esLotePactado ? 'VALOR PACTADO DE TIERRA' : 'LOTE SUGERIDO EQUILIBRADO'}
+                  {esLotePactado ? 'VALOR PACTADO DE TIERRA' : 'VALOR SUGERIDO DEL LOTE'}
                 </h2>
               </div>
-              <div className="text-right mt-4 sm:mt-0 bg-black/20 px-6 py-3 rounded-xl backdrop-blur-sm">
-                <span className="text-3xl font-black">{formatCOP(loteMonto)}</span>
-                <span className="block text-xs opacity-90 font-medium mt-0.5">
-                  ({formatCOP(loteM2Tierra)} / m² de tierra | {pesoLoteVentas.toFixed(1)}% de las Ventas)
+              <div className="text-right mt-4 sm:mt-0 bg-black/25 px-6 py-3.5 rounded-xl backdrop-blur-md border border-white/10">
+                <span className="text-3xl font-black block">{formatCOP(loteMonto)}</span>
+                <span className="inline-block bg-white/20 text-white font-extrabold text-xs px-2.5 py-1 rounded-md mt-1">
+                  PESA EL {pesoLoteVentas.toFixed(1)}% DE LAS VENTAS TOTALES
                 </span>
               </div>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl shadow-sm">
-              <h3 className="text-xs font-black text-amber-900 uppercase tracking-wider border-b border-amber-200 pb-2 mb-4">
-                Análisis y Detalle Específico del Suelo / Lote (Rango 10% - 20%)
-              </h3>
+            {/* BLOQUE EXCLUSIVO: DETALLE ESPECÍFICO Y PORCENTAJES DEL LOTE */}
+            <div className="bg-amber-50 border-2 border-amber-300 p-6 rounded-2xl shadow-sm">
+              <div className="flex justify-between items-center border-b border-amber-200 pb-2 mb-4">
+                <h3 className="text-xs font-black text-amber-950 uppercase tracking-wider">
+                  Análisis y Peso Financiero del Suelo / Lote
+                </h3>
+                <span className="text-xs bg-amber-200 text-amber-900 font-bold px-2.5 py-0.5 rounded-full">
+                  Incidencia de Tierra: {pesoLoteVentas.toFixed(1)}%
+                </span>
+              </div>
+              
               <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                <div className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm">
-                  <span className="text-xs text-amber-800 font-medium block">Criterio de Evaluación</span>
+                <div className="bg-white p-4 rounded-xl border border-amber-200 shadow-sm">
+                  <span className="text-xs text-amber-800 font-bold block uppercase">Criterio Lote</span>
                   <span className="text-sm font-black text-amber-950 mt-1 block">
-                    {esLotePactado ? 'Monto Pactado Propietario' : 'Sugerencia Equilibrada de Suelo'}
+                    {esLotePactado ? 'Valor Ingresado / Pactado' : 'Equilibrio Sugerido'}
                   </span>
                 </div>
-                <div className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm">
-                  <span className="text-xs text-amber-800 font-medium block">Valor por m² de Lote</span>
-                  <span className="text-lg font-black text-amber-950 mt-1 block">{formatCOP(loteM2Tierra)}</span>
+
+                <div className="bg-white p-4 rounded-xl border border-amber-200 shadow-sm">
+                  <span className="text-xs text-amber-800 font-bold block uppercase">Valor por m² de Lote</span>
+                  <span className="text-lg font-black text-amber-950 mt-1 block">{formatCOP(loteM2Tierra)} / m²</span>
                 </div>
-                <div className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm">
-                  <span className="text-xs text-amber-800 font-medium block">Incidencia sobre Ventas</span>
-                  <span className="text-lg font-black text-amber-950 mt-1 block">{pesoLoteVentas.toFixed(1)}%</span>
+
+                <div className="bg-amber-100/70 p-4 rounded-xl border border-amber-300 shadow-sm">
+                  <span className="text-xs text-amber-900 font-black block uppercase">Peso sobre Ventas (%)</span>
+                  <span className="text-2xl font-black text-amber-900 mt-0.5 block">{pesoLoteVentas.toFixed(1)}%</span>
+                  <span className="text-[10px] text-amber-700 font-medium">(Lote / Ventas Totales)</span>
                 </div>
-                <div className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm">
-                  <span className="text-xs text-amber-800 font-medium block">Peso en Costo Total</span>
-                  <span className="text-lg font-black text-amber-950 mt-1 block">{pesoLoteCostoTotal.toFixed(1)}%</span>
+
+                <div className="bg-amber-100/70 p-4 rounded-xl border border-amber-300 shadow-sm">
+                  <span className="text-xs text-amber-900 font-black block uppercase">Peso en Inversión Total (%)</span>
+                  <span className="text-2xl font-black text-amber-900 mt-0.5 block">{pesoLoteCostoTotal.toFixed(1)}%</span>
+                  <span className="text-[10px] text-amber-700 font-medium">(Lote / Costo con Tierra)</span>
                 </div>
               </div>
             </div>
 
+            {/* Balance Físico de Áreas */}
             <div className="bg-white p-6 rounded-2xl shadow border border-slate-200">
               <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b pb-2 mb-4">Balance Físico de Edificabilidad y Áreas</h3>
               <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -585,7 +604,9 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Inversión vs Ingresos */}
             <div className="grid md:grid-cols-2 gap-6">
+              {/* Estructura Total de Inversión */}
               <div className="bg-white p-6 rounded-2xl shadow border border-slate-200 space-y-3">
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b pb-2">Estructura Total de Inversión</h3>
                 
@@ -602,7 +623,7 @@ export default function Home() {
                 </div>
                 
                 <div className="flex justify-between text-sm py-1 border-b bg-slate-50 font-bold px-2 rounded">
-                  <span>Subtotal Costos Directos:</span>
+                  <span>Subtotal Costos Directos Obra:</span>
                   <span className="text-slate-900">{formatCOP(resultados.costoDirectoTotal)}</span>
                 </div>
                 
@@ -611,30 +632,32 @@ export default function Home() {
                   <span className="font-bold text-slate-800">{formatCOP(resultados.costosIndirectosTotal)}</span>
                 </div>
 
-                <div className="flex justify-between text-sm py-2 border-b bg-amber-100 font-bold px-3 rounded border border-amber-300">
+                {/* Casilla de Adquisición de Lote destacando la incidencia */}
+                <div className="flex justify-between items-center text-sm py-2.5 border-b bg-amber-100/80 font-bold px-3 rounded-lg border border-amber-300">
                   <div className="flex flex-col">
-                    <span className="text-amber-950">
-                      Adquisición de Lote / Tierra {esLotePactado ? '(Pactado)' : '(Equilibrio)'}:
+                    <span className="text-amber-950 font-black">
+                      Adquisición de Tierra / Lote {esLotePactado ? '(Pactado)' : '(Equilibrio)'}:
                     </span>
-                    <span className="text-[10px] text-amber-800 font-normal">
-                      Pesa {pesoLoteCostoTotal.toFixed(1)}% del Costo Total | {pesoLoteVentas.toFixed(1)}% de las Ventas
+                    <span className="text-xs text-amber-800 font-extrabold">
+                      Pesa {pesoLoteVentas.toFixed(1)}% de las Ventas | {pesoLoteCostoTotal.toFixed(1)}% de la Inversión
                     </span>
                   </div>
-                  <span className="text-amber-950 text-base">{formatCOP(loteMonto)}</span>
+                  <span className="text-amber-950 text-lg font-black">{formatCOP(loteMonto)}</span>
                 </div>
 
                 <div className="flex justify-between text-base font-black pt-2 text-slate-900">
                   <span>INVERSIÓN TOTAL PROYECTO (CON LOTE):</span>
-                  <span className="text-orange-600">{formatCOP(costoTotalConLote)}</span>
+                  <span className="text-orange-600 text-lg">{formatCOP(costoTotalConLote)}</span>
                 </div>
               </div>
 
+              {/* Ingresos y Utilidades */}
               <div className="bg-white p-6 rounded-2xl shadow border border-slate-200 space-y-3">
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b pb-2">Ingresos y Estado de Resultados</h3>
                 
                 <div className="flex justify-between text-sm py-1 border-b">
                   <span className="text-slate-600">Ventas Totales Proyectadas:</span>
-                  <span className="font-black text-emerald-600 text-lg">{formatCOP(resultados.ventasTotales)}</span>
+                  <span className="font-black text-emerald-600 text-lg">{formatCOP(ventasTotales)}</span>
                 </div>
 
                 <div className="flex justify-between text-sm py-1 border-b">
@@ -654,11 +677,12 @@ export default function Home() {
 
                 <div className="text-xs text-slate-500 pt-2 space-y-1">
                   <p>• Margen Mínimo Objetivo Configurado: <strong className="text-slate-700">{inputs.margenObjetivoPct}%</strong></p>
-                  <p>• Incidencia de Tierra sobre Ventas: <strong className="text-slate-700">{pesoLoteVentas.toFixed(1)}%</strong></p>
+                  <p>• Incidencia Real de Tierra sobre Ventas: <strong className="text-amber-700 font-bold">{pesoLoteVentas.toFixed(1)}%</strong></p>
                 </div>
               </div>
             </div>
 
+            {/* Botón Volver */}
             <div className="flex justify-between items-center pt-2">
               <button
                 onClick={() => setPaso(1)}
