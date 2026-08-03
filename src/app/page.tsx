@@ -6,6 +6,39 @@ import { calcularPrefactibilidadCompleta, KUBICInputs, KUBICResults } from '../l
 export default function Home() {
   const [paso, setPaso] = useState<1 | 2>(1);
 
+  const listaCiudades = [
+    'Bogotá D.C.',
+    'Medellín (Antioquia)',
+    'Cali (Valle del Cauca)',
+    'Barranquilla (Atlántico)',
+    'Bucaramanga (Santander)',
+    'Cartagena (Bolívar)',
+    'Pereira (Risaralda)',
+    'Manizales (Caldas)',
+    'Cúcuta (Norte de Santander)',
+    'Ibagué (Tolima)',
+    'Santa Marta (Magdalena)',
+    'Villavicencio (Meta)',
+    'Pasto (Nariño)',
+    'Montería (Córdoba)',
+    'Valledupar (Cesar)',
+    'Neiva (Huila)',
+    'Armenia (Quindío)',
+    'Popayán (Cauca)',
+    'Tunja (Boyacá)',
+    'Chía (Cundinamarca)',
+    'Cajicá (Cundinamarca)',
+    'Sopó (Cundinamarca)',
+    'Rionegro (Antioquia)',
+    'Envigado (Antioquia)',
+    'Sabaneta (Antioquia)',
+    'Palmira (Valle)',
+    'Melgar (Tolima)',
+    'Girardot (Cundinamarca)',
+    'Jamundí (Valle)',
+    'Otra Ciudad / Internacional'
+  ];
+
   const [inputs, setInputs] = useState<KUBICInputs>({
     nombreProyecto: '',
     ciudad: 'Bogotá D.C.',
@@ -20,7 +53,7 @@ export default function Home() {
     areaSotanoPorNivel: 560,
 
     costoDirectoSobreM2: 5200000,
-    coeficienteSotano: 1.20, // Sótanos cuestan 20% más por m2
+    coeficienteSotano: 1.25,
 
     pctEstudiosDiseños: 4.0,
     pctLicenciasImpuestos: 3.5,
@@ -38,7 +71,7 @@ export default function Home() {
   const actualizarSugerenciasMercado = (estratoNuevo: number, usoNuevo: string) => {
     let ventaSugerida = 15000000;
     let costoSobreSugerido = 5200000;
-    let coefSotanoSugerido = 1.20;
+    let coefSotanoSugerido = 1.25;
     let eficienciaSugerida = 82;
 
     switch (estratoNuevo) {
@@ -127,6 +160,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans">
+      {/* Header */}
       <header className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-md">
         <div className="flex items-center space-x-3">
           <span className="text-2xl font-black tracking-wider text-orange-500">KUBIC</span>
@@ -135,57 +169,43 @@ export default function Home() {
           </span>
         </div>
         <div className="text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-slate-300">
-          Equilibrio Suelo (10% - 20%) & Coef. Sótanos
+          Simulador Financiero Universal
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto p-4 sm:p-6">
         {paso === 1 && (
           <div className="space-y-6 my-4">
-            <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-lg border border-slate-700">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <span className="text-xs font-bold text-orange-400 uppercase tracking-wider">¿Necesitas verificar la norma local?</span>
-                  <h2 className="text-xl font-bold mt-1">Consultar Portales de Planeación Oficiales</h2>
-                  <p className="text-slate-300 text-xs mt-1 max-w-xl">
-                    Consulta el Área, I.O. e I.C. oficial en el visor catastral o POT de tu municipio e ingrésalos en el formulario.
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <a
-                    href="https://sinupotp.sdp.gov.co/sinupot/index.jsf"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow transition flex items-center gap-1"
-                  >
-                    🔍 SINUPOT (Bogotá) ↗
-                  </a>
-                  <a
-                    href="https://www.igac.gov.co/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow transition flex items-center gap-1"
-                  >
-                    🌐 IGAC (Nacional) ↗
-                  </a>
-                </div>
+            {/* Banner Explicativo e Intuitivo */}
+            <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-700">
+              <div className="max-w-3xl space-y-2">
+                <span className="inline-block bg-orange-500/20 text-orange-400 text-xs font-bold uppercase px-3 py-1 rounded-full border border-orange-500/30">
+                  Simulador Interactivo de Prefactibilidad
+                </span>
+                <h2 className="text-2xl font-black text-white">Evaluación Financiera e Inmobiliaria Exprès</h2>
+                <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                  Esta plataforma calcula la viabilidad de tu lote o proyecto en tiempo real. 
+                  Al seleccionar el <strong>Estrato</strong> y el <strong>Uso del Suelo</strong>, el sistema sugerirá automáticamente indicadores de mercado (ventas por m², costos de construcción y eficiencias). 
+                  <strong> Todos los parámetros son totalmente editables</strong> para que ingreses los datos exactos de tu predio o norma urbanística si ya dispones de ellos.
+                </p>
               </div>
             </div>
 
             <form onSubmit={handleCalcular} className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200 space-y-8">
               <div>
                 <h1 className="text-2xl font-extrabold text-slate-900">Estructuración de Prefactibilidad</h1>
-                <p className="text-slate-500 text-xs mt-1">Ingresa todos los parámetros físicos, urbanísticos, directos e indirectos del proyecto.</p>
+                <p className="text-slate-500 text-xs mt-1">Diligencia la ubicación, norma urbanística y parámetros de mercado.</p>
               </div>
 
+              {/* 1. Clasificación del Proyecto */}
               <div className="space-y-4">
-                <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">1. Clasificación del Proyecto (Sugerencias Automáticas)</h3>
+                <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">1. Datos Básicos y Clasificación</h3>
                 <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Nombre / Referencia</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Nombre / Referencia del Proyecto</label>
                     <input
                       type="text"
-                      placeholder="Ej: Edificio Rosales 72"
+                      placeholder="Ej: Edificio Rosales 72 / Lote Campestre"
                       value={inputs.nombreProyecto}
                       onChange={(e) => setInputs({ ...inputs, nombreProyecto: e.target.value })}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
@@ -194,13 +214,15 @@ export default function Home() {
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">Ciudad / Municipio</label>
-                    <input
-                      type="text"
+                    <select
                       value={inputs.ciudad}
                       onChange={(e) => setInputs({ ...inputs, ciudad: e.target.value })}
-                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
-                      required
-                    />
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none font-medium text-slate-800"
+                    >
+                      {listaCiudades.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">Estrato Socioeconómico</label>
@@ -235,6 +257,7 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* 2. Física del Lote y Subestructura */}
               <div className="space-y-4">
                 <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">2. Física del Lote y Subestructura (Sótanos)</h3>
                 <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -325,6 +348,7 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* 3. Costos Directos */}
               <div className="space-y-4">
                 <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">3. Costos Directos y Coeficiente de Sótanos</h3>
                 <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -360,6 +384,7 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* 4. Indirectos */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center border-b pb-1">
                   <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider">4. Desglose de Costos Indirectos (% sobre Costo Directo)</h3>
@@ -419,6 +444,7 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* 5. Mercado y Margen */}
               <div className="space-y-4">
                 <h3 className="text-xs font-black text-orange-600 uppercase tracking-wider border-b pb-1">5. Valor de Venta, Lote Pactado y Margen Objetivo</h3>
                 <div className="grid sm:grid-cols-3 gap-4">
