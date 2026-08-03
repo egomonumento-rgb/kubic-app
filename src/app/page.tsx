@@ -68,7 +68,7 @@ export default function Home() {
 
   const [resultados, setResultados] = useState<KUBICResults | null>(null);
 
-  // Función utilitaria para seleccionar automáticamente el contenido al hacer clic o foco
+  // Selecciona automáticamente todo el número al hacer clic para facilitar la edición
   const handleFocusSelect = (e: React.FocusEvent<HTMLInputElement>) => {
     e.target.select();
   };
@@ -168,9 +168,17 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans">
-      {/* Header */}
+      {/* Header con Logo */}
       <header className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-md">
         <div className="flex items-center space-x-3">
+          <img 
+            src="/icon.png" 
+            alt="KUBIC Logo" 
+            className="w-8 h-8 object-contain rounded-lg border border-slate-700"
+            onError={(e) => {
+              (e.target as HTMLElement).style.display = 'none';
+            }}
+          />
           <span className="text-2xl font-black tracking-wider text-orange-500">KUBIC</span>
           <span className="text-xs border-l border-slate-700 pl-3 text-slate-400 uppercase tracking-widest hidden sm:inline">
             Modelo Profesional de Prefactibilidad Inmobiliaria
