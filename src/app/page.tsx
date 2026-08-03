@@ -68,6 +68,11 @@ export default function Home() {
 
   const [resultados, setResultados] = useState<KUBICResults | null>(null);
 
+  // Función utilitaria para seleccionar automáticamente el contenido al hacer clic o foco
+  const handleFocusSelect = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.select();
+  };
+
   const actualizarSugerenciasMercado = (estratoNuevo: number, usoNuevo: string) => {
     let ventaSugerida = 15000000;
     let costoSobreSugerido = 5200000;
@@ -150,7 +155,6 @@ export default function Home() {
     inputs.pctVentasComercial + 
     inputs.pctImprevistosFinancieros;
 
-  // CÁLCULOS EXPLÍCITOS DEL LOTE Y SUS PESOS
   const esLotePactado = Boolean(inputs.valorLotePactado && inputs.valorLotePactado > 0);
   const loteMonto = esLotePactado ? inputs.valorLotePactado! : (resultados?.residualSueloSugerido || 0);
   const loteM2Tierra = inputs.areaLote > 0 ? loteMonto / inputs.areaLote : 0;
@@ -212,6 +216,7 @@ export default function Home() {
                       placeholder="Ej: Edificio Rosales 72 / Lote Campestre"
                       value={inputs.nombreProyecto}
                       onChange={(e) => setInputs({ ...inputs, nombreProyecto: e.target.value })}
+                      onFocus={handleFocusSelect}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
                       required
                     />
@@ -269,7 +274,7 @@ export default function Home() {
                     <label className="block text-xs font-bold text-slate-700 mb-1">Área Lote (m²)</label>
                     <input
                       type="number"
-                      value={inputs.areaLote}
+                      value={inputs.areaLote || ''}
                       onChange={(e) => {
                         const area = Number(e.target.value);
                         setInputs({
@@ -278,6 +283,7 @@ export default function Home() {
                           areaSotanoPorNivel: area * inputs.indiceOcupacion
                         });
                       }}
+                      onFocus={handleFocusSelect}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-sm font-bold bg-slate-50 focus:border-orange-500 focus:outline-none"
                       required
                     />
@@ -289,7 +295,7 @@ export default function Home() {
                       step="0.05"
                       min="0.1"
                       max="1.0"
-                      value={inputs.indiceOcupacion}
+                      value={inputs.indiceOcupacion || ''}
                       onChange={(e) => {
                         const io = Number(e.target.value);
                         setInputs({
@@ -298,6 +304,7 @@ export default function Home() {
                           areaSotanoPorNivel: inputs.areaLote * io
                         });
                       }}
+                      onFocus={handleFocusSelect}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
                       required
                     />
@@ -309,8 +316,9 @@ export default function Home() {
                       step="0.1"
                       min="0.5"
                       max="12.0"
-                      value={inputs.indiceConstruccion}
+                      value={inputs.indiceConstruccion || ''}
                       onChange={(e) => setInputs({ ...inputs, indiceConstruccion: Number(e.target.value) })}
+                      onFocus={handleFocusSelect}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
                       required
                     />
@@ -321,8 +329,9 @@ export default function Home() {
                       type="number"
                       min="50"
                       max="95"
-                      value={inputs.eficienciaPlantaPct}
+                      value={inputs.eficienciaPlantaPct || ''}
                       onChange={(e) => setInputs({ ...inputs, eficienciaPlantaPct: Number(e.target.value) })}
+                      onFocus={handleFocusSelect}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
                       required
                     />
@@ -335,6 +344,7 @@ export default function Home() {
                       max="6"
                       value={inputs.numSotanos}
                       onChange={(e) => setInputs({ ...inputs, numSotanos: Number(e.target.value) })}
+                      onFocus={handleFocusSelect}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
                       required
                     />
@@ -343,8 +353,9 @@ export default function Home() {
                     <label className="block text-xs font-bold text-slate-700 mb-1">Área Sótano por Nivel (m²)</label>
                     <input
                       type="number"
-                      value={inputs.areaSotanoPorNivel}
+                      value={inputs.areaSotanoPorNivel || ''}
                       onChange={(e) => setInputs({ ...inputs, areaSotanoPorNivel: Number(e.target.value) })}
+                      onFocus={handleFocusSelect}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
                       required
                     />
@@ -360,8 +371,9 @@ export default function Home() {
                     <label className="block text-xs font-bold text-slate-700 mb-1">Costo Directo Sobre Rasante ($/m²)</label>
                     <input
                       type="number"
-                      value={inputs.costoDirectoSobreM2}
+                      value={inputs.costoDirectoSobreM2 || ''}
                       onChange={(e) => setInputs({ ...inputs, costoDirectoSobreM2: Number(e.target.value) })}
+                      onFocus={handleFocusSelect}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none font-bold"
                       required
                     />
@@ -373,8 +385,9 @@ export default function Home() {
                       step="0.01"
                       min="1.0"
                       max="2.0"
-                      value={inputs.coeficienteSotano}
+                      value={inputs.coeficienteSotano || ''}
                       onChange={(e) => setInputs({ ...inputs, coeficienteSotano: Number(e.target.value) })}
+                      onFocus={handleFocusSelect}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none font-bold text-orange-700"
                       required
                     />
@@ -400,8 +413,9 @@ export default function Home() {
                     <input
                       type="number"
                       step="0.5"
-                      value={inputs.pctEstudiosDiseños}
+                      value={inputs.pctEstudiosDiseños || ''}
                       onChange={(e) => setInputs({ ...inputs, pctEstudiosDiseños: Number(e.target.value) })}
+                      onFocus={handleFocusSelect}
                       className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-slate-50"
                     />
                   </div>
@@ -410,8 +424,9 @@ export default function Home() {
                     <input
                       type="number"
                       step="0.5"
-                      value={inputs.pctLicenciasImpuestos}
+                      value={inputs.pctLicenciasImpuestos || ''}
                       onChange={(e) => setInputs({ ...inputs, pctLicenciasImpuestos: Number(e.target.value) })}
+                      onFocus={handleFocusSelect}
                       className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-slate-50"
                     />
                   </div>
@@ -420,8 +435,9 @@ export default function Home() {
                     <input
                       type="number"
                       step="0.5"
-                      value={inputs.pctGerenciaSupervision}
+                      value={inputs.pctGerenciaSupervision || ''}
                       onChange={(e) => setInputs({ ...inputs, pctGerenciaSupervision: Number(e.target.value) })}
+                      onFocus={handleFocusSelect}
                       className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-slate-50"
                     />
                   </div>
@@ -430,8 +446,9 @@ export default function Home() {
                     <input
                       type="number"
                       step="0.5"
-                      value={inputs.pctVentasComercial}
+                      value={inputs.pctVentasComercial || ''}
                       onChange={(e) => setInputs({ ...inputs, pctVentasComercial: Number(e.target.value) })}
+                      onFocus={handleFocusSelect}
                       className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-slate-50"
                     />
                   </div>
@@ -440,8 +457,9 @@ export default function Home() {
                     <input
                       type="number"
                       step="0.5"
-                      value={inputs.pctImprevistosFinancieros}
+                      value={inputs.pctImprevistosFinancieros || ''}
                       onChange={(e) => setInputs({ ...inputs, pctImprevistosFinancieros: Number(e.target.value) })}
+                      onFocus={handleFocusSelect}
                       className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-slate-50"
                     />
                   </div>
@@ -456,8 +474,9 @@ export default function Home() {
                     <label className="block text-xs font-bold text-slate-700 mb-1">Precio Venta ($/m² útil vendible)</label>
                     <input
                       type="number"
-                      value={inputs.precioVentaM2}
+                      value={inputs.precioVentaM2 || ''}
                       onChange={(e) => setInputs({ ...inputs, precioVentaM2: Number(e.target.value) })}
+                      onFocus={handleFocusSelect}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 font-bold text-emerald-700 focus:border-orange-500 focus:outline-none"
                       required
                     />
@@ -469,6 +488,7 @@ export default function Home() {
                       placeholder="Dejar en 0 para calcular Equilibrio 10%-20%"
                       value={inputs.valorLotePactado || ''}
                       onChange={(e) => setInputs({ ...inputs, valorLotePactado: Number(e.target.value) })}
+                      onFocus={handleFocusSelect}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
                     />
                   </div>
@@ -476,8 +496,9 @@ export default function Home() {
                     <label className="block text-xs font-bold text-slate-700 mb-1">Margen Objetivo Desarrollador (%)</label>
                     <input
                       type="number"
-                      value={inputs.margenObjetivoPct}
+                      value={inputs.margenObjetivoPct || ''}
                       onChange={(e) => setInputs({ ...inputs, margenObjetivoPct: Number(e.target.value) })}
+                      onFocus={handleFocusSelect}
                       className="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-orange-500 focus:outline-none"
                       required
                     />
@@ -632,7 +653,7 @@ export default function Home() {
                   <span className="font-bold text-slate-800">{formatCOP(resultados.costosIndirectosTotal)}</span>
                 </div>
 
-                {/* Casilla de Adquisición de Lote destacando la incidencia */}
+                {/* Casilla de Adquisición de Lote */}
                 <div className="flex justify-between items-center text-sm py-2.5 border-b bg-amber-100/80 font-bold px-3 rounded-lg border border-amber-300">
                   <div className="flex flex-col">
                     <span className="text-amber-950 font-black">
