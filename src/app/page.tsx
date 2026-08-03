@@ -68,7 +68,6 @@ export default function Home() {
 
   const [resultados, setResultados] = useState<KUBICResults | null>(null);
 
-  // Selecciona automáticamente todo el número al hacer clic para facilitar la edición
   const handleFocusSelect = (e: React.FocusEvent<HTMLInputElement>) => {
     e.target.select();
   };
@@ -168,17 +167,18 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans">
-      {/* Header con Logo */}
+      {/* Header con Logo SVG nativo (Garantizado) */}
       <header className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-md">
         <div className="flex items-center space-x-3">
-          <img 
-            src="/icon.png" 
-            alt="KUBIC Logo" 
-            className="w-8 h-8 object-contain rounded-lg border border-slate-700"
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-            }}
-          />
+          <div className="w-9 h-9 bg-slate-800 rounded-xl p-1 border border-slate-700 flex items-center justify-center shadow-inner">
+            <svg viewBox="0 0 512 512" className="w-full h-full">
+              <path d="M 256 60 L 416 150 L 256 240 L 96 150 Z" fill="#F97316" />
+              <path d="M 96 150 L 256 240 L 256 430 L 96 340 Z" fill="#EA580C" />
+              <path d="M 256 240 L 416 150 L 416 340 L 256 430 Z" fill="#C2410C" />
+              <path d="M 96 150 L 256 240 L 416 150" stroke="#FFFFFF" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.5" />
+              <path d="M 256 240 L 256 430" stroke="#FFFFFF" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.5" />
+            </svg>
+          </div>
           <span className="text-2xl font-black tracking-wider text-orange-500">KUBIC</span>
           <span className="text-xs border-l border-slate-700 pl-3 text-slate-400 uppercase tracking-widest hidden sm:inline">
             Modelo Profesional de Prefactibilidad Inmobiliaria
