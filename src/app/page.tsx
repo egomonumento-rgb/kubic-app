@@ -139,6 +139,10 @@ export default function Home() {
     setPaso(2);
   };
 
+  const handleExportarPDF = () => {
+    window.print();
+  };
+
   const formatCOP = (valor: number) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -166,9 +170,9 @@ export default function Home() {
   const pesoLoteCostoTotal = costoTotalConLote > 0 ? (loteMonto / costoTotalConLote) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 font-sans">
-      {/* Header con Logo SVG nativo (Garantizado) */}
-      <header className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-md">
+    <div className="min-h-screen bg-slate-100 text-slate-800 font-sans print:bg-white print:p-0">
+      {/* Header con Logo SVG */}
+      <header className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-md print:hidden">
         <div className="flex items-center space-x-3">
           <div className="w-9 h-9 bg-slate-800 rounded-xl p-1 border border-slate-700 flex items-center justify-center shadow-inner">
             <svg viewBox="0 0 512 512" className="w-full h-full">
@@ -189,7 +193,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto p-4 sm:p-6">
+      <main className="max-w-6xl mx-auto p-4 sm:p-6 print:p-0 print:max-w-none">
         {paso === 1 && (
           <div className="space-y-6 my-4">
             {/* Banner Explicativo */}
@@ -526,26 +530,38 @@ export default function Home() {
 
         {paso === 2 && resultados && (
           <div className="space-y-6 my-4">
-            {/* Header del Informe */}
-            <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-6">
+            {/* Header Impreso Especial (Solo aparece al imprimir) */}
+            <div className="hidden print:flex justify-between items-center border-b-2 border-slate-900 pb-4 mb-6">
+              <div className="flex items-center space-x-3">
+                <span className="text-3xl font-black text-orange-600">KUBIC</span>
+                <span className="text-xs text-slate-500 border-l border-slate-300 pl-3 uppercase">Informe de Prefactibilidad Inmobiliaria</span>
+              </div>
+              <div className="text-right text-xs text-slate-500">
+                <p>Fecha de Generación: {new Date().toLocaleDateString('es-CO')}</p>
+                <p className="font-bold text-slate-800">{inputs.ciudad}</p>
+              </div>
+            </div>
+
+            {/* Header del Informe Web */}
+            <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-6 print:bg-slate-100 print:text-slate-900 print:shadow-none print:p-4 print:border">
               <div>
-                <span className="text-xs text-orange-400 font-bold uppercase tracking-wider">{inputs.ciudad} | Estrato {inputs.estrato} | {inputs.usoSuelo}</span>
+                <span className="text-xs text-orange-400 font-bold uppercase tracking-wider print:text-orange-600">{inputs.ciudad} | Estrato {inputs.estrato} | {inputs.usoSuelo}</span>
                 <h1 className="text-2xl font-black mt-1">{inputs.nombreProyecto || 'Proyecto Evaluado'}</h1>
-                <p className="text-slate-400 text-xs mt-1">
+                <p className="text-slate-400 text-xs mt-1 print:text-slate-600">
                   Lote: {inputs.areaLote} m² | I.O: {inputs.indiceOcupacion} | I.C: {inputs.indiceConstruccion} | Eficiencia: {inputs.eficienciaPlantaPct}%
                 </p>
               </div>
 
-              <div className="flex items-center gap-4 bg-slate-800 p-4 rounded-xl border border-slate-700">
-                <div className={`w-4 h-4 rounded-full animate-pulse ${
+              <div className="flex items-center gap-4 bg-slate-800 p-4 rounded-xl border border-slate-700 print:bg-white print:border-slate-300">
+                <div className={`w-4 h-4 rounded-full animate-pulse print:animate-none ${
                   resultados.estadoViabilidad === 'VERDE' ? 'bg-emerald-500' :
                   resultados.estadoViabilidad === 'AMARILLO' ? 'bg-amber-500' : 'bg-rose-500'
                 }`} />
                 <div>
-                  <span className="block text-xs text-slate-400 uppercase font-bold">Diagnóstico</span>
+                  <span className="block text-xs text-slate-400 print:text-slate-500 uppercase font-bold">Diagnóstico</span>
                   <span className={`text-xl font-black ${
-                    resultados.estadoViabilidad === 'VERDE' ? 'text-emerald-400' :
-                    resultados.estadoViabilidad === 'AMARILLO' ? 'text-amber-400' : 'text-rose-400'
+                    resultados.estadoViabilidad === 'VERDE' ? 'text-emerald-400 print:text-emerald-700' :
+                    resultados.estadoViabilidad === 'AMARILLO' ? 'text-amber-400 print:text-amber-700' : 'text-rose-400 print:text-rose-700'
                   }`}>
                     {resultados.estadoViabilidad === 'VERDE' ? 'PROYECTO VIABLE' :
                      resultados.estadoViabilidad === 'AMARILLO' ? 'MARGEN AJUSTADO' : 'ALTO RIESGO'}
@@ -554,8 +570,8 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Banner Destacado del Lote y Porcentaje de Peso */}
-            <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white p-6 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-center">
+            {/* Banner Destacado del Lote */}
+            <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white p-6 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-center print:bg-orange-600 print:p-4">
               <div>
                 <span className="text-xs uppercase tracking-widest font-bold opacity-90">
                   {esLotePactado ? 'VALOR PACTADO CON PROPIETARIO' : 'LOTE SUGERIDO (RANGO EQUILIBRIO 10% - 20%)'}
@@ -573,7 +589,7 @@ export default function Home() {
             </div>
 
             {/* BLOQUE EXCLUSIVO: DETALLE ESPECÍFICO Y PORCENTAJES DEL LOTE */}
-            <div className="bg-amber-50 border-2 border-amber-300 p-6 rounded-2xl shadow-sm">
+            <div className="bg-amber-50 border-2 border-amber-300 p-6 rounded-2xl shadow-sm print:p-4">
               <div className="flex justify-between items-center border-b border-amber-200 pb-2 mb-4">
                 <h3 className="text-xs font-black text-amber-950 uppercase tracking-wider">
                   Análisis y Peso Financiero del Suelo / Lote
@@ -611,7 +627,7 @@ export default function Home() {
             </div>
 
             {/* Balance Físico de Áreas */}
-            <div className="bg-white p-6 rounded-2xl shadow border border-slate-200">
+            <div className="bg-white p-6 rounded-2xl shadow border border-slate-200 print:p-4">
               <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b pb-2 mb-4">Balance Físico de Edificabilidad y Áreas</h3>
               <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div className="bg-slate-50 p-3 rounded-xl border">
@@ -636,7 +652,7 @@ export default function Home() {
             {/* Inversión vs Ingresos */}
             <div className="grid md:grid-cols-2 gap-6">
               {/* Estructura Total de Inversión */}
-              <div className="bg-white p-6 rounded-2xl shadow border border-slate-200 space-y-3">
+              <div className="bg-white p-6 rounded-2xl shadow border border-slate-200 space-y-3 print:p-4">
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b pb-2">Estructura Total de Inversión</h3>
                 
                 <div className="flex justify-between text-sm py-1 border-b">
@@ -681,7 +697,7 @@ export default function Home() {
               </div>
 
               {/* Ingresos y Utilidades */}
-              <div className="bg-white p-6 rounded-2xl shadow border border-slate-200 space-y-3">
+              <div className="bg-white p-6 rounded-2xl shadow border border-slate-200 space-y-3 print:p-4">
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b pb-2">Ingresos y Estado de Resultados</h3>
                 
                 <div className="flex justify-between text-sm py-1 border-b">
@@ -711,13 +727,20 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Botón Volver */}
-            <div className="flex justify-between items-center pt-2">
+            {/* Botones de Acción (Se ocultan automáticamente al imprimir) */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-2 print:hidden">
               <button
                 onClick={() => setPaso(1)}
-                className="px-5 py-2.5 text-slate-700 font-bold text-sm bg-white rounded-xl border border-slate-300 shadow-sm hover:bg-slate-50 transition"
+                className="w-full sm:w-auto px-5 py-3 text-slate-700 font-bold text-sm bg-white rounded-xl border border-slate-300 shadow-sm hover:bg-slate-50 transition"
               >
                 ← Modificar Parámetros y Volver a Calcular
+              </button>
+
+              <button
+                onClick={handleExportarPDF}
+                className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-black py-3 px-6 rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-sm"
+              >
+                <span>📄 Exportar Reporte PDF / Imprimir</span>
               </button>
             </div>
           </div>
